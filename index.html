@@ -4525,8 +4525,8 @@ function showSignup(){
   document.getElementById('authSignup').style.display='flex';
 }
 function applySession(name,email){
-  var parts=(name||'Guest').split(' ');
-  var ini=(parts[0][0]+(parts[1]?parts[1][0]:'')).toUpperCase();
+  var parts=((name||'Guest').trim()||'Guest').split(' ');
+  var ini=((parts[0]&&parts[0][0]?parts[0][0]:'G')+(parts[1]&&parts[1][0]?parts[1][0]:'')).toUpperCase();
   var pn=document.getElementById('profNm');if(pn)pn.textContent=name;
   var pa=document.getElementById('profAv');if(pa)pa.textContent=ini;
   (function(){
@@ -4534,9 +4534,12 @@ function applySession(name,email){
     var pts = typeof getPoints === 'function' ? getPoints() : 0;
     var rank = typeof getRank === 'function' ? getRank(pts) : {name:'Observer'};
     var tierLabel = tierCfg ? tierCfg.name : 'Standard';
-    document.getElementById('navR').textContent = tierLabel + ' · ' + rank.name + ' · ' + parts[0];
+    var _nr = document.getElementById('navR');
+    if(_nr) _nr.textContent = tierLabel + ' · ' + rank.name + ' · ' + parts[0];
   })();
-  document.getElementById('ndaOverlay').style.display='none';
+  /* ndaOverlay is declared after this script block, so it can be null here */
+  var _nda = document.getElementById('ndaOverlay');
+  if(_nda) _nda.style.display='none';
   var adminEmail='artbyadrielle@gmail.com';
   var isAdm=email&&email.toLowerCase().replace(/\s/g,'')==='artbyadrielle@gmail.com';
   var adminNav=document.getElementById('bn-admin');
@@ -4972,6 +4975,11 @@ var LENS_ARTISTS = [
 ];
 
 
+
+
+</script>
+
+<script>
 /* ============================================================
    SUPABASE EVENTS LOADER  — added by Claude
    Overrides getEventsDataMerged() so every existing render path
@@ -5090,8 +5098,8 @@ if(document.readyState === 'loading'){
 } else {
   loadEventsFromSupabase();
 }
-
 </script>
+
 
   <!-- AUTH GATE -->
   <div id="ndaOverlay" style="position:fixed;inset:0;background:#F7F4EE;z-index:999;overflow-y:auto;">
