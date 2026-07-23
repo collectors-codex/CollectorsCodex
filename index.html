@@ -1305,15 +1305,17 @@ function evToDir(e){
   var status=getEventStatus(e);
   var label=getDaysLabel(e);
   var st=status==='now'?'now':status==='soon'?'soon':'upcoming';
-  return {type:'curator',tl:"Adrielle's event",st:st,title:e.title,meta:(e.city||e.loc||'')+(e.date?' \u00b7 '+e.date:''),sig:e.avs||90,why:e.desc,look:e.avsMeta||'',entryFee:e.entryFee||'',eb:e.eb,cta:e.cta,label:label,saved:false,_fromEvent:true};
+  var _ext = !!e._source && e._source!=='manual' && e._source!=='eventbrite';
+  return {type:_ext?'essential':'curator',tl:_ext?(e.loc||'Exhibition'):"Adrielle's event",st:st,title:e.title,meta:(e.city||e.loc||'')+(e.date?' \u00b7 '+e.date:''),sig:e.avs||90,why:e.desc,look:e.avsMeta||'',entryFee:e.entryFee||'',eb:e.eb,cta:e.cta,label:label,saved:false,_fromEvent:true};
 }
 
 function renderDirs(f){
   var feed=document.getElementById('dirFeed');
   var today=new Date();today.setHours(0,0,0,0);
   var curatorFromEvents=[];
-  if(typeof EVENTS_DATA!=='undefined'){
-    EVENTS_DATA.forEach(function(e){
+  var _srcEvents=(typeof getEventsDataMerged==='function')?getEventsDataMerged():EVENTS_DATA;
+  if(typeof _srcEvents!=='undefined'){
+    _srcEvents.slice(0,24).forEach(function(e){
       var s=getEventStatus(e);
       if(s!=='past')curatorFromEvents.push(evToDir(e));
     });
@@ -2772,18 +2774,29 @@ function renderEvs(){
     var feeBadge=e.entryFee?'<span class="badge" style="background:var(--gold-pale);color:#7A5C10;border:0.5px solid var(--gold-l);">'+e.entryFee+'</span>':'';
     var locBadge=e.city?'<span class="badge" style="background:var(--cream-d);color:var(--ink-m);border:0.5px solid var(--cream-dd);">\u25cb '+e.city+'</span>':'';
     var pg=(e.prices||[]).map(function(p){return '<div class="pc'+(p.mem?' mem':'')+'"><div class="pc-lbl">'+(p.mem?'Codex Member':p.lbl)+'</div><div class="pc-amt">'+p.amt+'</div></div>';}).join('');
+    /* External = scraped from a museum/gallery. Adrielle's own branding must not appear on those. */
+    var _isExt = !!e._source && e._source!=='manual' && e._source!=='eventbrite';
+    var _hdrLabel = _isExt ? (e.loc||'Exhibition') : 'Art by Adrielle \u00b7 Collectors Club';
+    var _avsBlock = (e.avs!==null && e.avs!==undefined && e.avs!=='')
+      ? '<div class="avs-strip"><div class="avs-n">'+e.avs+'</div><div class="avs-m"><strong style="font-size:9px;font-weight:500;font-family:var(--sans);">Attendance Value Score</strong><br>'+(e.avsMeta||'')+'</div></div>'
+      : '';
+    var _hasRealPrice = (e.prices||[]).some(function(p){ return p.amt && !/^see venue$/i.test(p.amt); });
+    var _priceBlock = _hasRealPrice
+      ? '<div style="font-size:9px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-l);margin-bottom:7px;">Ticket pricing</div><div class="price-grid">'+pg+'</div>'
+      : '';
+    var _ebFooter = _isExt ? ''
+      : '<a class="eb-ghost" href="https://www.eventbrite.com/o/adrielle-turner-121058837212" target="_blank">View all Adrielle Turner events on Eventbrite</a><div class="eb-credit">Ticketing powered by Eventbrite \u00b7 artbyadrielle.com</div>';
+    var _descBlock = e.desc ? '<div class="ev-desc">'+e.desc+'</div><div class="ev-div"></div>' : '<div class="ev-div"></div>';
     return '<div class="ev-card">'
-      +'<div class="ev-hdr '+(e.hdrClass||'')+'"><div class="ev-sm">Art by Adrielle \u00b7 Collectors Club</div><div class="ev-ttl">'+(e.titleEm?'<em>'+e.title+'</em>':e.title)+'</div><div class="ev-sub-hdr">'+e.sub+'</div></div>'
+      +'<div class="ev-hdr '+(e.hdrClass||'')+'"><div class="ev-sm">'+_hdrLabel+'</div><div class="ev-ttl">'+(e.titleEm?'<em>'+e.title+'</em>':e.title)+'</div><div class="ev-sub-hdr">'+e.sub+'</div></div>'
       +'<div class="ev-body"><div class="ev-badges">'+sb+countdown+locBadge+feeBadge+'</div>'
       +'<div class="ev-mr"><span class="ev-mi">\u25cf</span><span class="ev-mt">'+e.date+' \u00b7 '+e.time+'</span></div>'
       +'<div class="ev-mr"><span class="ev-mi">\u25cb</span><span class="ev-mt">'+e.loc+'</span></div>'
-      +'<div class="ev-desc">'+e.desc+'</div><div class="ev-div"></div>'
-      +'<div style="font-size:9px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-l);margin-bottom:7px;">Ticket pricing</div>'
-      +'<div class="price-grid">'+pg+'</div>'
-      +'<div class="avs-strip"><div class="avs-n">'+e.avs+'</div><div class="avs-m"><strong style="font-size:9px;font-weight:500;font-family:var(--sans);">Attendance Value Score</strong><br>'+e.avsMeta+'</div></div>'
+      +_descBlock
+      +_priceBlock
+      +_avsBlock
       +'<a class="eb-btn" href="'+e.eb+'" target="_blank">'+e.cta+' \u2197</a>'
-      +'<a class="eb-ghost" href="https://www.eventbrite.com/o/adrielle-turner-121058837212" target="_blank">View all Adrielle Turner events on Eventbrite</a>'
-      +'<div class="eb-credit">Ticketing powered by Eventbrite \u00b7 artbyadrielle.com</div>'
+      +_ebFooter
       +'</div></div>';
   }).join('');
 }
