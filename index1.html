@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="referrer" content="no-referrer"/>
+<meta name="description" content="Collector's Cödex — A private art intelligence platform by Adrielle Turner."/>
+<title>Collector's Cödex</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --basil:#2D4A3E;--basil-l:#3D6054;--basil-pale:#EAF0EC;--basil-b:#A8C4B8;
+  --cream:#F7F4EE;--cream-d:#EDE9E0;--cream-dd:#D8D3C8;
+  --ink:#1A1916;--ink-m:#4A4844;--ink-l:#8A8880;
+  --gold:#9B8A5A;--gold-l:#C4AF7E;--gold-pale:#FAF5EB;
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --sans:'Jost',sans-serif;
+}
+html,body{height:100%;background:var(--cream);}
+body{font-family:var(--sans);color:var(--ink);display:flex;flex-direction:column;align-items:center;}
+.shell{width:100%;max-width:480px;min-height:100vh;background:var(--cream);display:flex;flex-direction:column;position:relative;}
+
+/* NAV */
+.nav{background:var(--cream);border-bottom:1px solid var(--cream-d);padding:0 16px 0 12px;display:flex;align-items:center;justify-content:space-between;height:50px;flex-shrink:0;position:sticky;top:0;z-index:100;}
+.nav-wm{font-family:var(--serif);font-size:13px;font-weight:400;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-m);}
+.nav-r{font-size:10px;font-weight:300;color:var(--ink-l);letter-spacing:.06em;}
+
+/* SCREENS */
+.screen{display:none;flex:1;overflow-y:auto;padding-bottom:72px;}
+.screen.on{display:block;}
+
+/* SHARED */
+.page-head{padding:22px 20px 0;}
+.eyebrow{font-size:10px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;}
+.pg-title{font-family:var(--serif);font-size:28px;font-weight:300;line-height:1.12;color:var(--ink);margin-bottom:5px;}
+.pg-title em{font-style:italic;color:var(--basil);}
+.pg-sub{font-size:12px;font-weight:300;color:var(--ink-l);line-height:1.7;margin-bottom:16px;}
+.divider{height:1px;background:var(--cream-d);margin:14px 0;}
+
+/* SPLASH */
+.splash{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center;min-height:80vh;}
+.splash-orn{width:54px;height:54px;border:1px solid var(--gold-l);display:flex;align-items:center;justify-content:center;margin:0 auto 22px;}
+.splash-badge{font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;padding:5px 16px;background:var(--gold-pale);color:var(--gold);border:0.5px solid var(--gold-l);margin-bottom:28px;display:inline-block;}
+.splash-title{font-family:var(--serif);font-size:40px;font-weight:300;line-height:1.08;color:var(--ink);margin-bottom:10px;}
+.splash-title em{font-style:italic;color:var(--basil);}
+.splash-sub{font-size:13px;font-weight:300;color:var(--ink-l);line-height:1.75;max-width:290px;margin:0 auto 32px;}
+.splash-cta{width:100%;max-width:280px;padding:16px;background:var(--basil);color:var(--cream);border:none;font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;margin-bottom:20px;}
+.splash-links{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;}
+.splash-link{font-size:11px;font-weight:300;color:var(--basil);text-decoration:underline;text-underline-offset:2px;background:none;border:none;cursor:pointer;}
+
+/* FILTER STRIP */
+.fstrip{display:flex;gap:7px;padding:12px 20px 4px;overflow-x:auto;scrollbar-width:none;}
+.fstrip::-webkit-scrollbar{display:none;}
+.ftag{font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;padding:6px 12px;border:0.5px solid var(--cream-dd);border-radius:50px;background:transparent;color:var(--ink-l);cursor:pointer;white-space:nowrap;transition:all .2s;}
+.ftag.on{background:var(--basil);border-color:var(--basil);color:var(--cream);}
+
+/* DIRECTIVES */
+.dir-feed{padding:0 20px;}
+.dir-entry{padding:16px 0;border-bottom:1px solid var(--cream-d);cursor:pointer;}
+.dir-entry:last-child{border-bottom:none;}
+.d-badges{display:flex;gap:6px;margin-bottom:7px;flex-wrap:wrap;}
+.badge{font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;padding:3px 8px;border-radius:50px;}
+.bc{background:var(--basil-pale);color:var(--basil);border:0.5px solid var(--basil-b);}
+.bg{background:var(--gold-pale);color:#7A5C10;border:0.5px solid var(--gold-l);}
+.bp{background:#F0EAF7;color:#5A3480;}
+.bn{background:var(--basil);color:var(--cream);}
+.bs{background:#FAF0EE;color:#7A2D1A;border:0.5px solid #F5C4B3;}
+.d-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;}
+.d-title{font-family:var(--serif);font-size:18px;font-weight:400;color:var(--ink);line-height:1.2;flex:1;}
+.d-sig{text-align:right;flex-shrink:0;margin-left:10px;}
+.d-num{font-family:var(--serif);font-size:20px;font-weight:300;color:var(--basil);}
+.d-lbl{font-size:9px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-l);}
+.d-meta{font-size:11px;font-weight:300;color:var(--ink-l);margin-bottom:7px;}
+.d-why{font-size:12px;font-weight:300;color:var(--ink-m);line-height:1.65;display:none;}
+.dir-entry.open .d-why{display:block;}
+.d-look{font-size:11px;color:var(--basil);margin-top:7px;line-height:1.6;display:none;}
+.dir-entry.open .d-look{display:block;}
+.d-actions{display:none;gap:7px;margin-top:10px;}
+.dir-entry.open .d-actions{display:flex;}
+.act-btn{font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;padding:7px 12px;border:0.5px solid var(--cream-dd);background:transparent;color:var(--ink-m);cursor:pointer;}
+.act-btn.sv{background:var(--basil);border-color:var(--basil);color:var(--cream);}
+.chv{color:var(--ink-l);font-size:12px;transition:transform .25s;margin-top:2px;}
+.dir-entry.open .chv{transform:rotate(180deg);}
+
+/* CALIBRATION */
+.cal-rail{margin:14px 20px 0;height:1px;background:var(--cream-dd);}
+.cal-fill{height:100%;background:var(--gold);transition:width .4s;}
+.card-stack{position:relative;margin:14px 20px 0;height:360px;}
+.art-card{position:absolute;inset:0;background:#fff;border:0.5px solid var(--cream-dd);overflow:hidden;cursor:grab;user-select:none;touch-action:none;}
+.art-card img{width:100%;height:100%;object-fit:cover;pointer-events:none;}
+.art-card.dragging{opacity:.7;z-index:10;}
+.card-num{position:absolute;top:14px;left:14px;font-family:var(--serif);font-size:28px;font-weight:300;color:var(--basil);text-shadow:0 0 20px rgba(255,255,255,.8);z-index:5;}
+
+/* EVENTS */
+.ev-strip{display:flex;gap:10px;padding:12px 20px;overflow-x:auto;scrollbar-width:none;}
+.ev-strip::-webkit-scrollbar{display:none;}
+.ev-card{flex-shrink:0;width:140px;padding:12px;background:#fff;border:0.5px solid var(--cream-dd);cursor:pointer;text-decoration:none;color:inherit;}
+.ev-card-date{font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-l);margin-bottom:3px;}
+.ev-card-title{font-family:var(--serif);font-size:13px;font-weight:400;color:var(--ink);line-height:1.3;margin-bottom:6px;}
+.ev-card-dist{font-size:10px;color:var(--basil);}
+
+/* MAP */
+#map{width:100%;height:100%;background:#f0f0f0;}
+.map-footer{position:absolute;bottom:0;left:0;right:0;background:var(--cream);border-top:1px solid var(--cream-d);padding:14px 20px;z-index:10;}
+.event-marker{background:var(--basil);color:var(--cream);border-radius:50%;padding:6px 8px;font-size:9px;font-weight:500;cursor:pointer;}
+
+/* PROFILE */
+.prof-avatar{width:60px;height:60px;background:var(--basil-pale);border:1px solid var(--basil-b);margin:0 auto 14px;}
+.prof-name{font-family:var(--serif);font-size:22px;font-weight:400;color:var(--ink);text-align:center;margin-bottom:4px;}
+.prof-meta{font-size:10px;color:var(--ink-l);text-align:center;margin-bottom:20px;}
+.prof-field{margin-bottom:18px;}
+.prof-label{font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-l);margin-bottom:6px;}
+.prof-value{font-size:12px;color:var(--ink);line-height:1.6;}
+
+/* ROLE PILLS */
+.role-pill{display:inline-block;padding:6px 12px;margin-right:6px;margin-bottom:6px;border:0.5px solid var(--cream-dd);background:transparent;color:var(--ink-m);font-size:10px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;}
+.role-pill.selected{background:var(--basil);border-color:var(--basil);color:var(--cream);}
+
+/* AUTH MODALS */
+.modal{display:none;position:fixed;inset:0;background:rgba(26,25,22,.75);z-index:9999;align-items:center;justify-content:center;}
+.modal.on{display:flex;}
+.modal-box{background:var(--cream);width:100%;max-width:380px;padding:32px 28px;border-radius:0;max-height:90vh;overflow-y:auto;}
+.modal-close{position:absolute;top:12px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink-l);}
+
+/* FEEDBACK */
+.ef-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:0.5px solid var(--cream-dd);background:transparent;color:var(--ink-m);font-size:10px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;margin-right:6px;margin-bottom:6px;}
+.ef-pill input:checked+*,
+.ef-pill input:checked+label{display:block;}
+.ef-pill input[type="radio"]:checked~*,
+.ef-pill input[type="checkbox"]:checked~*{color:var(--basil);}
+.ef-pill:has(input:checked){background:var(--basil-pale);border-color:var(--basil-b);color:var(--basil);}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- NAV -->
+  <div class="nav">
+    <div class="nav-wm">Collector's Cödex</div>
+    <div class="nav-r" id="navRight"></div>
+  </div>
+
+  <!-- SPLASH SCREEN -->
+  <div id="splashScreen" class="screen on">
+    <div class="splash">
+      <div class="splash-orn">◆</div>
+      <div class="splash-badge">private beta</div>
+      <div class="splash-title">Collector's<br><em>Cödex.</em></div>
+      <div class="splash-sub">An art intelligence platform designed for collectors and advisors discovering and tracking their next great acquisitions.</div>
+      <button onclick="showSignup()" class="splash-cta">Get access</button>
+      <div class="splash-links">
+        <button class="splash-link" onclick="showLogin()">I have an account</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIRECTIVES SCREEN -->
+  <div id="directivesScreen" class="screen">
+    <div class="page-head">
+      <div class="eyebrow">Your Lens</div>
+      <div class="pg-title">Directives</div>
+      <div class="pg-sub">Your personalized gallery feed, ranked by acquisition potential and cultural significance.</div>
+    </div>
+    <div class="fstrip" id="filterStrip"></div>
+    <div class="dir-feed" id="directivesFeed"></div>
+  </div>
+
+  <!-- CALIBRATION SCREEN -->
+  <div id="calibrationScreen" class="screen">
+    <div class="page-head">
+      <div class="eyebrow">Tune Your Lens</div>
+      <div class="pg-title">Calibration</div>
+      <div class="pg-sub">Refine your taste profile through rapid-fire comparisons.</div>
+    </div>
+    <div class="cal-rail">
+      <div class="cal-fill" id="calFill" style="width:0%;"></div>
+    </div>
+    <div class="card-stack" id="cardStack"></div>
+    <div style="padding:0 20px;">
+      <button onclick="endCalibration()" style="width:100%;padding:14px;background:var(--basil);border:none;color:var(--cream);font-family:var(--sans);font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;margin-top:20px;">Finish calibration</button>
+    </div>
+  </div>
+
+  <!-- EVENTS SCREEN -->
+  <div id="eventsScreen" class="screen">
+    <div class="page-head">
+      <div class="eyebrow">Your Calendar</div>
+      <div class="pg-title">Events</div>
+      <div class="pg-sub">Upcoming exhibitions, viewings, and gatherings curated for your collection interests.</div>
+    </div>
+    <div id="eventsContainer" style="padding:12px 0;"></div>
+  </div>
+
+  <!-- MAP SCREEN -->
+  <div id="mapScreen" class="screen" style="padding:0;position:relative;">
+    <div id="map"></div>
+    <div class="map-footer">
+      <div class="eyebrow" style="margin-bottom:6px;">Nearby</div>
+      <div id="mapInfo" style="font-size:13px;color:var(--ink);"></div>
+    </div>
+  </div>
+
+  <!-- PROFILE SCREEN -->
+  <div id="profileScreen" class="screen">
+    <div class="page-head">
+      <div class="eyebrow">Account</div>
+      <div class="pg-title">Profile</div>
+    </div>
+    <div style="padding:20px;">
+      <div class="prof-avatar"></div>
+      <div class="prof-name" id="profName"></div>
+      <div class="prof-meta" id="profMeta"></div>
+      <div class="prof-field">
+        <div class="prof-label">Collection city</div>
+        <div class="prof-value" id="profCity"></div>
+        <button onclick="showCitySelector()" style="margin-top:8px;padding:8px 12px;background:transparent;border:0.5px solid var(--cream-dd);color:var(--basil);font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;">Change</button>
+      </div>
+      <div class="divider"></div>
+      <button onclick="doLogout()" style="width:100%;padding:12px;background:transparent;border:0.5px solid #D8A6A6;color:#8A3A3A;font-family:var(--sans);font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;">Sign out</button>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:72px;background:var(--cream);border-top:1px solid var(--cream-d);display:flex;justify-content:space-around;align-items:center;z-index:100;">
+    <button onclick="goToScreen('directivesScreen')" style="flex:1;height:100%;background:none;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;color:var(--ink-l);font-size:9px;font-weight:500;">
+      <div style="font-size:18px;">◆</div>
+      <div>Directives</div>
+    </button>
+    <button onclick="goToScreen('calibrationScreen')" style="flex:1;height:100%;background:none;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;color:var(--ink-l);font-size:9px;font-weight:500;">
+      <div style="font-size:18px;">⚙</div>
+      <div>Calibrate</div>
+    </button>
+    <button onclick="goToScreen('eventsScreen')" style="flex:1;height:100%;background:none;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;color:var(--ink-l);font-size:9px;font-weight:500;">
+      <div style="font-size:18px;">📅</div>
+      <div>Events</div>
+    </button>
+    <button onclick="goToScreen('mapScreen')" style="flex:1;height:100%;background:none;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;color:var(--ink-l);font-size:9px;font-weight:500;">
+      <div style="font-size:18px;">🗺</div>
+      <div>Map</div>
+    </button>
+    <button onclick="goToScreen('profileScreen')" style="flex:1;height:100%;background:none;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;color:var(--ink-l);font-size:9px;font-weight:500;">
+      <div style="font-size:18px;">👤</div>
+      <div>Profile</div>
+    </button>
+  </div>
+
+</div>
+
+<!-- LOGIN MODAL -->
+<div id="loginModal" class="modal">
+  <div class="modal-box">
+    <button onclick="document.getElementById('loginModal').classList.remove('on')" class="modal-close">✕</button>
+    <div style="font-size:10px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:#9B8A5A;margin-bottom:12px;text-align:center;">Collector's Cödex</div>
+    <div style="font-family:var(--serif);font-size:28px;font-weight:300;color:var(--ink);margin-bottom:24px;text-align:center;">Sign in</div>
+    <input id="loginEmail" type="email" placeholder="Email" style="width:100%;border:none;border-bottom:1.5px solid #D8D3C8;background:transparent;font-family:var(--sans);font-size:15px;font-weight:300;color:var(--ink);padding:10px 0;outline:none;margin-bottom:20px;"/>
+    <input id="loginPassword" type="password" placeholder="Password" style="width:100%;border:none;border-bottom:1.5px solid #D8D3C8;background:transparent;font-family:var(--sans);font-size:15px;font-weight:300;color:var(--ink);padding:10px 0;outline:none;margin-bottom:28px;"/>
+    <button onclick="doLogin()" style="width:100%;padding:14px;background:var(--basil);border:none;font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--cream);cursor:pointer;margin-bottom:12px;">Sign in</button>
+    <button onclick="showSignup()" style="width:100%;padding:10px;background:transparent;border:0.5px solid #D8D3C8;color:var(--ink-l);font-family:var(--sans);font-size:10px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;">Create account</button>
+  </div>
+</div>
+
+<!-- SIGNUP MODAL -->
+<div id="signupModal" class="modal">
+  <div class="modal-box">
+    <button onclick="document.getElementById('signupModal').classList.remove('on')" class="modal-close">✕</button>
+    <div style="font-size:10px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:#9B8A5A;margin-bottom:6px;text-align:center;">Private beta · 2026</div>
+    <div style="font-family:var(--serif);font-size:30px;font-weight:300;color:var(--ink);margin-bottom:24px;text-align:center;">Collector's<br><em style="color:var(--basil);">Cödex.</em></div>
+    <input id="ndaFirst" type="text" placeholder="First name" style="width:100%;border:none;border-bottom:1.5px solid #D8D3C8;background:transparent;font-family:var(--sans);font-size:16px;font-weight:300;color:var(--ink);padding:10px 0;outline:none;margin-bottom:16px;"/>
+    <input id="ndaLast" type="text" placeholder="Last name" style="width:100%;border:none;border-bottom:1.5px solid #D8D3C8;background:transparent;font-family:var(--sans);font-size:16px;font-weight:300;color:var(--ink);padding:10px 0;outline:none;margin-bottom:16px;"/>
+    <input id="ndaEmail" type="email" placeholder="Email address" style="width:100%;border:none;border-bottom:1.5px solid #D8D3C8;background:transparent;font-family:var(--sans);font-size:16px;font-weight:300;color:var(--ink);padding:10px 0;outline:none;margin-bottom:20px;"/>
+    <div style="margin-bottom:20px;">
+      <div style="font-size:9px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:#8A8880;margin-bottom:10px;">I am a</div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px;" id="roleSelect">
+        <div class="role-pill" data-role="Collector" onclick="selectRole(this)">Collector</div>
+        <div class="role-pill" data-role="Curator" onclick="selectRole(this)">Curator</div>
+        <div class="role-pill" data-role="Artist" onclick="selectRole(this)">Artist</div>
+        <div class="role-pill" data-role="Advisor" onclick="selectRole(this)">Advisor</div>
+        <div class="role-pill" data-role="Institution" onclick="selectRole(this)">Institution</div>
+        <div class="role-pill" data-role="Enthusiast" onclick="selectRole(this)">Enthusiast</div>
+        <div class="role-pill" data-role="Press" onclick="selectRole(this)">Press</div>
+        <div class="role-pill" data-role="Academic" onclick="selectRole(this)">Academic</div>
+      </div>
+    </div>
+    <input id="ndaCity" type="text" placeholder="Your city — e.g. New York, London, Lagos" style="width:100%;border:none;border-bottom:1.5px solid #D8D3C8;background:transparent;font-family:var(--sans);font-size:16px;font-weight:300;color:var(--ink);padding:10px 0;outline:none;margin-bottom:20px;"/>
+    <div style="font-size:10px;font-weight:300;color:#8A8880;line-height:1.7;margin-bottom:24px;">By creating your profile you agree to keep all platform content confidential. Collector's Cödex is proprietary to Collector's Cödex LLC · © 2026 · New York</div>
+    <button onclick="doSignup()" style="width:100%;padding:15px;background:var(--basil);color:var(--cream);border:none;font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;margin-bottom:10px;">Create my profile</button>
+    <button onclick="showLogin()" style="width:100%;padding:11px;background:transparent;border:0.5px solid #D8D3C8;color:#8A8880;font-family:var(--sans);font-size:10px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;">Already have an account? Sign in</button>
+  </div>
+</div>
+
+<!-- EVENT FEEDBACK MODAL -->
+<div id="eventFeedbackModal" style="display:none;position:fixed;inset:0;background:rgba(26,25,22,.75);z-index:9999;align-items:flex-end;justify-content:center;">
+  <div style="background:#FDFBF7;width:100%;max-width:480px;padding:28px 24px 40px;border-top:0.5px solid var(--cream-dd);">
+    <div class="eyebrow" style="margin-bottom:6px;">Event Check-In</div>
+    <div id="efTitle" style="font-family:var(--serif);font-size:18px;font-weight:300;color:var(--ink);margin-bottom:2px;"></div>
+    <div id="efVenue" style="font-size:11px;font-weight:300;color:var(--ink-l);margin-bottom:20px;"></div>
+    <div style="display:grid;gap:14px;">
+      <div>
+        <div style="font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-l);margin-bottom:6px;">Did you attend?</div>
+        <div style="display:flex;gap:8px;">
+          <label class="ef-pill"><input type="radio" name="efAttended" value="yes" style="display:none;"> Yes</label>
+          <label class="ef-pill"><input type="radio" name="efAttended" value="no" style="display:none;"> No</label>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-l);margin-bottom:6px;">Was it worth the visit?</div>
+        <div style="display:flex;gap:8px;">
+          <label class="ef-pill"><input type="radio" name="efWorth" value="yes" style="display:none;"> Yes</label>
+          <label class="ef-pill"><input type="radio" name="efWorth" value="no" style="display:none;"> Not particularly</label>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-l);margin-bottom:6px;">Did the room align with your collector goals?</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <label class="ef-pill"><input type="checkbox" name="efRoom" value="collector-heavy" style="display:none;"> Collector-heavy</label>
+          <label class="ef-pill"><input type="checkbox" name="efRoom" value="artist-forward" style="display:none;"> Artist-forward</label>
+          <label class="ef-pill"><input type="checkbox" name="efRoom" value="institutional" style="display:none;"> Institutional</label>
+          <label class="ef-pill"><input type="checkbox" name="efRoom" value="socially-active" style="display:none;"> Socially active</label>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-l);margin-bottom:6px;">Would you return to this space?</div>
+        <div style="display:flex;gap:8px;">
+          <label class="ef-pill"><input type="radio" name="efReturn" value="yes" style="display:none;"> Yes</label>
+          <label class="ef-pill"><input type="radio" name="efReturn" value="no" style="display:none;"> No</label>
+        </div>
+      </div>
+    </div>
+    <button onclick="submitEventFeedback()" style="width:100%;margin-top:20px;padding:14px;background:var(--basil);border:none;font-family:var(--sans);font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--cream);cursor:pointer;">Submit</button>
+    <button onclick="document.getElementById('eventFeedbackModal').style.display='none'" style="width:100%;margin-top:8px;padding:10px;background:transparent;border:none;font-family:var(--sans);font-size:9px;font-weight:400;color:var(--ink-l);cursor:pointer;">Skip</button>
+  </div>
+</div>
+
+<div id="feedbackConfirm" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--basil);color:var(--cream);font-family:var(--sans);font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;padding:10px 20px;z-index:9999;">Lens updated ✓</div>
+
+<!-- CITY SELECTOR OVERLAY (FROM BOSS'S CODE) -->
+<div id="citySelectorOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(26,25,22,.92);z-index:9000;flex-direction:column;align-items:center;justify-content:center;padding:32px;">
+  <div style="font-size:9px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:rgba(247,244,238,.5);margin-bottom:12px;">Collector's Cödex</div>
+  <div style="font-family:var(--serif);font-size:26px;font-weight:300;color:var(--cream);margin-bottom:8px;text-align:center;">Where are you<br>collecting from?</div>
+  <div style="font-size:12px;font-weight:300;color:rgba(247,244,238,.5);margin-bottom:28px;text-align:center;">Sets your gallery feed, distance scoring,<br>and event recommendations.</div>
+  <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:8px;">
+    <button onclick="selectCity('New York')" style="width:100%;padding:14px;background:transparent;border:0.5px solid rgba(247,244,238,.2);font-family:var(--sans);font-size:11px;font-weight:400;letter-spacing:.1em;color:var(--cream);cursor:pointer;text-align:left;">New York</button>
+    <button onclick="selectCity('Los Angeles')" style="width:100%;padding:14px;background:transparent;border:0.5px solid rgba(247,244,238,.2);font-family:var(--sans);font-size:11px;font-weight:400;letter-spacing:.1em;color:var(--cream);cursor:pointer;text-align:left;">Los Angeles</button>
+    <button onclick="selectCity('London')" style="width:100%;padding:14px;background:transparent;border:0.5px solid rgba(247,244,238,.2);font-family:var(--sans);font-size:11px;font-weight:400;letter-spacing:.1em;color:var(--cream);cursor:pointer;text-align:left;">London</button>
+    <button onclick="selectCity('Paris')" style="width:100%;padding:14px;background:transparent;border:0.5px solid rgba(247,244,238,.2);font-family:var(--sans);font-size:11px;font-weight:400;letter-spacing:.1em;color:var(--cream);cursor:pointer;text-align:left;">Paris</button>
+    <button onclick="selectCity('Miami')" style="width:100%;padding:14px;background:transparent;border:0.5px solid rgba(247,244,238,.2);font-family:var(--sans);font-size:11px;font-weight:400;letter-spacing:.1em;color:var(--cream);cursor:pointer;text-align:left;">Miami</button>
+    <button onclick="selectCity('Chicago')" style="width:100%;padding:14px;background:transparent;border:0.5px solid rgba(247,244,238,.2);font-family:var(--sans);font-size:11px;font-weight:400;letter-spacing:.1em;color:var(--cream);cursor:pointer;text-align:left;">Chicago</button>
+    <button onclick="selectCity('Berlin')" style="width:100%;padding:14px;background:transparent;border:0.5px solid rgba(247,244,238,.2);font-family:var(--sans);font-size:11px;font-weight:400;letter-spacing:.1em;color:var(--cream);cursor:pointer;text-align:left;">Berlin</button>
+    <button onclick="selectCity('Hong Kong')" style="width:100%;padding:14px;background:transparent;border:0.5px solid rgba(247,244,238,.2);font-family:var(--sans);font-size:11px;font-weight:400;letter-spacing:.1em;color:var(--cream);cursor:pointer;text-align:left;">Hong Kong</button>
+  </div>
+  <button onclick="selectCity('New York')" style="margin-top:20px;background:none;border:none;font-family:var(--sans);font-size:10px;font-weight:300;color:rgba(247,244,238,.3);cursor:pointer;">Default to New York</button>
+</div>
+
+<script>
+// ===== SUPABASE SETUP (YOUR CODE) =====
+const SUPABASE_URL = 'https://gxqtgqijtqrrahqclop.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4cXRnZ3FpanRxcnJhaHFjbG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2NDAwMzMsImV4cCI6MjEwMDIxNjAzM30.P0uta4MRyFg6SbLcfnNcS_sG4h7gFkcDVCMl68Ir-zI';
+let supabase = null;
+let currentUser = null;
+let userCity = 'New York';
+let userLat = null;
+let userLng = null;
+
+// Initialize Supabase
+function initSupabase() {
+  supabase = supabase || window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  return supabase;
+}
+
+// ===== SCREEN NAVIGATION =====
+function goToScreen(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
+  document.getElementById(screenId).classList.add('on');
+}
+
+function showLogin() {
+  document.getElementById('loginModal').classList.add('on');
+  document.getElementById('signupModal').classList.remove('on');
+}
+
+function showSignup() {
+  document.getElementById('signupModal').classList.add('on');
+  document.getElementById('loginModal').classList.remove('on');
+}
+
+function showCitySelector() {
+  document.getElementById('citySelectorOverlay').style.display = 'flex';
+}
+
+function hideCitySelector() {
+  document.getElementById('citySelectorOverlay').style.display = 'none';
+}
+
+// ===== CITY SELECTION (INTEGRATED WITH SUPABASE & GEOLOCATION) =====
+function selectCity(city) {
+  userCity = city;
+  hideCitySelector();
+  
+  // Save to Supabase if user is logged in
+  if (currentUser) {
+    updateUserCity(city);
+  }
+  
+  // Update profile display
+  document.getElementById('profCity').textContent = city;
+  
+  // Recalculate distances and reload data
+  loadDirectives();
+  loadEvents();
+  goToScreen('directivesScreen');
+}
+
+async function updateUserCity(city) {
+  if (!currentUser || !supabase) return;
+  try {
+    await supabase
+      .from('profiles')
+      .update({ city: city })
+      .eq('id', currentUser.id);
+  } catch (err) {
+    console.error('Error updating city:', err);
+  }
+}
+
+// ===== AUTHENTICATION =====
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  
+  if (!email || !password) {
+    alert('Please enter email and password');
+    return;
+  }
+  
+  try {
+    initSupabase();
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    if (error) throw error;
+    
+    currentUser = data.user;
+    await loadUserProfile();
+    document.getElementById('loginModal').classList.remove('on');
+    goToScreen('directivesScreen');
+  } catch (err) {
+    alert('Login failed: ' + err.message);
+  }
+}
+
+async function doSignup() {
+  const first = document.getElementById('ndaFirst').value;
+  const last = document.getElementById('ndaLast').value;
+  const email = document.getElementById('ndaEmail').value;
+  const city = document.getElementById('ndaCity').value;
+  const roles = document.querySelectorAll('.role-pill.selected');
+  
+  if (!first || !last || !email || !city || roles.length === 0) {
+    alert('Please fill all fields');
+    return;
+  }
+  
+  try {
+    initSupabase();
+    const { data, error } = await supabase.auth.signUp({
+      email: email,
+      password: Math.random().toString(36).slice(-8)
+    });
+    
+    if (error) throw error;
+    
+    // Create profile
+    await supabase.from('profiles').insert([{
+      id: data.user.id,
+      first_name: first,
+      last_name: last,
+      email: email,
+      city: city,
+      roles: Array.from(roles).map(r => r.dataset.role)
+    }]);
+    
+    currentUser = data.user;
+    userCity = city;
+    await loadUserProfile();
+    document.getElementById('signupModal').classList.remove('on');
+    goToScreen('directivesScreen');
+  } catch (err) {
+    alert('Signup failed: ' + err.message);
+  }
+}
+
+async function doLogout() {
+  try {
+    initSupabase();
+    await supabase.auth.signOut();
+    currentUser = null;
+    goToScreen('splashScreen');
+  } catch (err) {
+    alert('Logout failed: ' + err.message);
+  }
+}
+
+async function loadUserProfile() {
+  if (!currentUser || !supabase) return;
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', currentUser.id)
+      .single();
+    
+    if (error) throw error;
+    
+    userCity = data.city || 'New York';
+    document.getElementById('profName').textContent = `${data.first_name} ${data.last_name}`;
+    document.getElementById('profMeta').textContent = data.roles?.join(' · ') || '';
+    document.getElementById('profCity').textContent = userCity;
+    document.getElementById('navRight').textContent = data.first_name;
+  } catch (err) {
+    console.error('Error loading profile:', err);
+  }
+}
+
+// ===== ROLE SELECTION =====
+function selectRole(el) {
+  el.classList.toggle('selected');
+}
+
+// ===== DIRECTIVES & FEED =====
+async function loadDirectives() {
+  if (!supabase) initSupabase();
+  try {
+    const { data, error } = await supabase
+      .from('artworks')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+    
+    if (error) throw error;
+    
+    const feed = document.getElementById('directivesFeed');
+    feed.innerHTML = '';
+    
+    (data || []).forEach(art => {
+      const entry = document.createElement('div');
+      entry.className = 'dir-entry';
+      entry.innerHTML = `
+        <div class="d-top">
+          <div class="d-title">${art.title || 'Untitled'}</div>
+          <div class="d-sig">
+            <div class="d-num">${Math.random().toString(36).slice(2, 4).toUpperCase()}</div>
+            <div class="d-lbl">Score</div>
+          </div>
+        </div>
+        <div class="d-meta">${art.artist || 'Unknown'} · ${art.year || 'N/A'}</div>
+        <div class="d-why">${art.description || ''}</div>
+        <div class="d-actions">
+          <button class="act-btn sv" onclick="saveArt(${art.id})">Save</button>
+          <button class="act-btn" onclick="viewArt(${art.id})">View</button>
+        </div>
+      `;
+      entry.onclick = () => entry.classList.toggle('open');
+      feed.appendChild(entry);
+    });
+  } catch (err) {
+    console.error('Error loading directives:', err);
+  }
+}
+
+// ===== EVENTS =====
+async function loadEvents() {
+  if (!supabase) initSupabase();
+  try {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .order('event_date', { ascending: true })
+      .limit(20);
+    
+    if (error) throw error;
+    
+    const container = document.getElementById('eventsContainer');
+    container.innerHTML = '<div class="ev-strip">';
+    
+    (data || []).forEach(event => {
+      const card = document.createElement('a');
+      card.className = 'ev-card';
+      card.href = '#';
+      card.onclick = (e) => {
+        e.preventDefault();
+        showEventFeedback(event);
+      };
+      card.innerHTML = `
+        <div class="ev-card-date">${new Date(event.event_date).toLocaleDateString()}</div>
+        <div class="ev-card-title">${event.title}</div>
+        <div class="ev-card-dist">${event.venue}</div>
+      `;
+      container.appendChild(card);
+    });
+    
+    container.innerHTML += '</div>';
+  } catch (err) {
+    console.error('Error loading events:', err);
+  }
+}
+
+function showEventFeedback(event) {
+  document.getElementById('efTitle').textContent = event.title;
+  document.getElementById('efVenue').textContent = event.venue;
+  document.getElementById('eventFeedbackModal').style.display = 'flex';
+}
+
+async function submitEventFeedback() {
+  const attended = document.querySelector('input[name="efAttended"]:checked')?.value;
+  const worth = document.querySelector('input[name="efWorth"]:checked')?.value;
+  const room = Array.from(document.querySelectorAll('input[name="efRoom"]:checked')).map(i => i.value);
+  const returns = document.querySelector('input[name="efReturn"]:checked')?.value;
+  
+  if (currentUser && supabase) {
+    try {
+      await supabase.from('event_feedback').insert([{
+        user_id: currentUser.id,
+        attended, worth, room, returns
+      }]);
+    } catch (err) {
+      console.error('Error submitting feedback:', err);
+    }
+  }
+  
+  document.getElementById('eventFeedbackModal').style.display = 'none';
+  document.getElementById('feedbackConfirm').style.display = 'block';
+  setTimeout(() => {
+    document.getElementById('feedbackConfirm').style.display = 'none';
+  }, 2000);
+}
+
+// ===== CALIBRATION =====
+async function loadCalibrationCards() {
+  if (!supabase) initSupabase();
+  try {
+    const { data, error } = await supabase
+      .from('artworks')
+      .select('*')
+      .limit(10);
+    
+    if (error) throw error;
+    
+    const stack = document.getElementById('cardStack');
+    stack.innerHTML = '';
+    
+    (data || []).forEach((art, idx) => {
+      const card = document.createElement('div');
+      card.className = 'art-card';
+      card.style.zIndex = data.length - idx;
+      card.innerHTML = `
+        <div class="card-num">${idx + 1}</div>
+        <img src="${art.image_url || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22%3E%3C/svg%3E'}" alt="${art.title}"/>
+      `;
+      stack.appendChild(card);
+    });
+  } catch (err) {
+    console.error('Error loading calibration cards:', err);
+  }
+}
+
+function endCalibration() {
+  goToScreen('directivesScreen');
+}
+
+// ===== UTILITY FUNCTIONS =====
+function saveArt(artId) {
+  console.log('Saved art:', artId);
+}
+
+function viewArt(artId) {
+  console.log('Viewing art:', artId);
+}
+
+// ===== GEOLOCATION & MAP =====
+function initMap() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(position => {
+      userLat = position.coords.latitude;
+      userLng = position.coords.longitude;
+    });
+  }
+}
+
+// ===== INITIALIZATION =====
+window.addEventListener('DOMContentLoaded', () => {
+  initSupabase();
+  initMap();
+  loadCalibrationCards();
+  loadDirectives();
+  loadEvents();
+});
+</script>
+
+</body>
+</html>
