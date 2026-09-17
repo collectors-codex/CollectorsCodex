@@ -743,57 +743,6 @@ body{font-family:var(--sans);color:var(--ink);display:flex;flex-direction:column
 
       <div class="pg-sub">Add artworks to the calibration deck. All members see new works immediately.</div>
     
-      <!-- EVENT EDITOR -->
-      <div style="padding:0 20px 32px;border-top:1px solid var(--cream-d);margin-top:8px;">
-        <div style="font-size:9px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-l);margin-bottom:4px;margin-top:20px;">Your Events</div>
-        <div style="font-size:11px;font-weight:300;color:var(--ink-m);margin-bottom:16px;">Add and manage events. They appear in the Events tab for all members.</div>
-
-        <!-- ADD / EDIT FORM -->
-        <div id="evEditorForm" style="background:var(--cream-d);border:0.5px solid var(--cream-dd);padding:16px;margin-bottom:16px;">
-          <div style="font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-l);margin-bottom:12px;" id="evFormTitle">New event</div>
-
-          <input id="evf-title" placeholder="Event title" style="width:100%;padding:8px 10px;background:var(--cream);border:0.5px solid var(--cream-dd);font-family:var(--sans);font-size:12px;color:var(--ink);box-sizing:border-box;margin-bottom:8px;"/>
-          <input id="evf-sub" placeholder="Subtitle / description line" style="width:100%;padding:8px 10px;background:var(--cream);border:0.5px solid var(--cream-dd);font-family:var(--sans);font-size:12px;color:var(--ink);box-sizing:border-box;margin-bottom:8px;"/>
-          <input id="evf-desc" placeholder="Full description" style="width:100%;padding:8px 10px;background:var(--cream);border:0.5px solid var(--cream-dd);font-family:var(--sans);font-size:12px;color:var(--ink);box-sizing:border-box;margin-bottom:8px;"/>
-
-          <div style="display:flex;gap:8px;margin-bottom:8px;">
-            <div style="flex:1;">
-              <div style="font-size:9px;color:var(--ink-l);margin-bottom:3px;">Start date</div>
-              <input id="evf-start" type="date" style="width:100%;padding:8px 10px;background:var(--cream);border:0.5px solid var(--cream-dd);font-family:var(--sans);font-size:12px;color:var(--ink);box-sizing:border-box;"/>
-            </div>
-            <div style="flex:1;">
-              <div style="font-size:9px;color:var(--ink-l);margin-bottom:3px;">End date</div>
-              <input id="evf-end" type="date" style="width:100%;padding:8px 10px;background:var(--cream);border:0.5px solid var(--cream-dd);font-family:var(--sans);font-size:12px;color:var(--ink);box-sizing:border-box;"/>
-            </div>
-          </div>
-
-          <div style="display:flex;gap:8px;margin-bottom:8px;">
-            <input id="evf-time" placeholder="Time (e.g. 6:30 PM – 9:00 PM)" style="flex:1;padding:8px 10px;background:var(--cream);border:0.5px solid var(--cream-dd);font-family:var(--sans);font-size:12px;color:var(--ink);box-sizing:border-box;"/>
-            <input id="evf-city" placeholder="City" style="flex:1;padding:8px 10px;background:var(--cream);border:0.5px solid var(--cream-dd);font-family:var(--sans);font-size:12px;color:var(--ink);box-sizing:border-box;"/>
-          </div>
-
-          <input id="evf-loc" placeholder="Venue / location" style="width:100%;padding:8px 10px;background:var(--cream);border:0.5px solid var(--cream-dd);font-family:var(--sans);font-size:12px;color:var(--ink);box-sizing:border-box;margin-bottom:8px;"/>
-
-          <div style="display:flex;gap:8px;margin-bottom:8px;">
-            <input id="evf-fee" placeholder="Entry fee (e.g. $25, Free)" style="flex:1;padding:8px 10px;background:var(--cream);border:0.5px solid var(--cream-dd);font-family:var(--sans);font-size:12px;color:var(--ink);box-sizing:border-box;"/>
-            <input id="evf-memfee" placeholder="Member price" style="flex:1;padding:8px 10px;background:var(--cream);border:0.5px solid var(--cream-dd);font-family:var(--sans);font-size:12px;color:var(--ink);box-sizing:border-box;"/>
-          </div>
-
-          <input id="evf-eb" placeholder="Eventbrite URL" style="width:100%;padding:8px 10px;background:var(--cream);border:0.5px solid var(--cream-dd);font-family:var(--sans);font-size:12px;color:var(--ink);box-sizing:border-box;margin-bottom:8px;"/>
-          <input id="evf-cta" placeholder="Button label (e.g. Reserve your seat)" style="width:100%;padding:8px 10px;background:var(--cream);border:0.5px solid var(--cream-dd);font-family:var(--sans);font-size:12px;color:var(--ink);box-sizing:border-box;margin-bottom:12px;"/>
-
-          <input type="hidden" id="evf-editid" value=""/>
-          <div style="display:flex;gap:8px;">
-            <button onclick="saveAdminEvent()" style="flex:1;padding:10px;background:var(--basil);border:none;font-family:var(--sans);font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--cream);cursor:pointer;">Save event</button>
-            <button onclick="clearEvForm()" style="padding:10px 14px;background:transparent;border:0.5px solid var(--cream-dd);font-family:var(--sans);font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-l);cursor:pointer;">Clear</button>
-          </div>
-          <div id="evFormMsg" style="margin-top:8px;font-size:10px;color:var(--basil);min-height:16px;"></div>
-        </div>
-
-        <!-- EVENT LIST -->
-        <div id="adminEvList"></div>
-      </div>
-
     </div>
     <div style="padding:0 20px 20px;">
       <!-- ADD WORK FORM -->
@@ -823,11 +772,26 @@ body{font-family:var(--sans);color:var(--ink);display:flex;flex-direction:column
     <div style="border-top:1px solid var(--cream-d);margin-top:4px;padding:20px 20px 0;">
       <div style="font-size:9px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-l);margin-bottom:14px;">Your Events</div>
 
+      <!-- SUPABASE ADMIN SIGN-IN — separate from the site's regular guest login.
+           This is a real Supabase Auth session; adding/editing/deleting events
+           requires it because of the "admins write events" RLS policy. -->
+      <div id="adminAuthBox" style="background:var(--cream-d);border:0.5px solid var(--cream-dd);padding:16px;margin-bottom:16px;">
+        <div style="font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-l);margin-bottom:12px;">Admin sign-in required to manage events</div>
+        <input id="adminAuthEmail" type="email" placeholder="Admin email" autocomplete="username" style="width:100%;padding:8px 10px;background:var(--cream);border:0.5px solid var(--cream-dd);font-family:var(--sans);font-size:12px;color:var(--ink);box-sizing:border-box;margin-bottom:8px;"/>
+        <input id="adminAuthPass" type="password" placeholder="Password" autocomplete="current-password" style="width:100%;padding:8px 10px;background:var(--cream);border:0.5px solid var(--cream-dd);font-family:var(--sans);font-size:12px;color:var(--ink);box-sizing:border-box;margin-bottom:10px;"/>
+        <button onclick="adminSignIn()" style="width:100%;padding:10px;background:var(--basil);border:none;font-family:var(--sans);font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--cream);cursor:pointer;">Sign in</button>
+        <div id="adminAuthMsg" style="margin-top:8px;font-size:10px;color:#A32D2D;min-height:14px;"></div>
+      </div>
+      <div id="adminAuthStatus" style="display:none;margin-bottom:16px;font-size:11px;font-weight:300;color:var(--ink-m);">
+        Signed in as <span id="adminAuthEmailShown" style="color:var(--ink);font-weight:500;"></span>
+        · <a href="#" onclick="adminSignOut();return false;" style="color:var(--basil);">Sign out</a>
+      </div>
+
       <!-- Event list -->
-      <div id="adminEventList" style="margin-bottom:20px;"></div>
+      <div id="adminEventList" style="margin-bottom:20px;display:none;"></div>
 
       <!-- Add / Edit form -->
-      <div id="adminEventForm" style="background:var(--cream-d);border:0.5px solid var(--cream-dd);padding:16px;margin-bottom:16px;">
+      <div id="adminEventForm" style="display:none;background:var(--cream-d);border:0.5px solid var(--cream-dd);padding:16px;margin-bottom:16px;">
         <div style="font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-l);margin-bottom:12px;" id="adminEventFormTitle">Add event</div>
         <input id="aef-title" placeholder="Event title" style="width:100%;padding:8px 10px;background:var(--cream);border:0.5px solid var(--cream-dd);font-family:var(--sans);font-size:12px;color:var(--ink);box-sizing:border-box;margin-bottom:8px;"/>
         <input id="aef-sub" placeholder="Subtitle / tagline" style="width:100%;padding:8px 10px;background:var(--cream);border:0.5px solid var(--cream-dd);font-family:var(--sans);font-size:12px;color:var(--ink);box-sizing:border-box;margin-bottom:8px;"/>
@@ -1280,12 +1244,10 @@ function go(id){
   if(id==='profile'){ renderProfile(); renderProfileMembership(); renderProfileTier(); refreshNavR(); }
   if(id==='leaderboard'){ renderLeaderboard(); }
   if(id==='admin'){
-    /* Both admin lists render on open. renderAdminEventList() was previously
-       called here as renderAdminWorks() — a name that was never defined, which
-       threw a ReferenceError and killed the rest of this block. The duplicated
-       key-loading lines that followed have been removed. */
-    renderAdminEvList();
-    renderAdminEventList();
+    /* Admin events now live in Supabase, not localStorage. Check for a
+       real Supabase Auth session (separate from the site's guest login)
+       before showing the event editor. */
+    checkAdminAuthAndLoad();
     var ki=document.getElementById('apiKeyInput');
     if(ki){ki.value=localStorage.getItem('cc_api_key')||'';}
     var spi=document.getElementById('stripePkInput'); if(spi) spi.value=localStorage.getItem('cc_stripe_pk')||'';
@@ -3895,191 +3857,100 @@ function refreshNavR(){
 }
 
 
-/* ── ADMIN EVENT EDITOR ── */
-function loadAdminEvents(){
-  try {
-    return JSON.parse(localStorage.getItem('cc_admin_events') || '[]');
-  } catch(e){ return []; }
+/* ── ADMIN EVENT EDITOR (Supabase-backed) ──
+   Manually added events are written straight to the Supabase "events"
+   table (source='manual') so every visitor sees them — not just the
+   browser that added them. Falls back to a clear on-screen error if
+   Supabase isn't reachable (e.g. table missing or RLS blocking the
+   write) instead of silently saving to localStorage. */
+var _adminEventsCache = [];
+
+/* Shows the sign-in box or the event editor, depending on whether we
+   actually have a live Supabase Auth session — not the site's fake
+   "collector" login. */
+function updateAdminAuthUI(session){
+  var box    = document.getElementById('adminAuthBox');
+  var status = document.getElementById('adminAuthStatus');
+  var list   = document.getElementById('adminEventList');
+  var form   = document.getElementById('adminEventForm');
+  var email  = document.getElementById('adminAuthEmailShown');
+
+  var signedIn = !!(session && session.user);
+  if(box)    box.style.display    = signedIn ? 'none'  : 'block';
+  if(status) status.style.display = signedIn ? 'block' : 'none';
+  if(list)   list.style.display   = signedIn ? 'block' : 'none';
+  if(form)   form.style.display   = signedIn ? 'block' : 'none';
+  if(email)  email.textContent    = signedIn ? session.user.email : '';
 }
 
-function saveAdminEvents(events){
-  localStorage.setItem('cc_admin_events', JSON.stringify(events));
+function checkAdminAuthAndLoad(){
+  var client = sbClient();
+  if(!client) return;
+  client.auth.getSession().then(function(res){
+    var session = res.data && res.data.session;
+    updateAdminAuthUI(session);
+    if(session) loadAdminEventsFromSupabase();
+  });
 }
 
-function getEventsDataMerged(){
-  /* Merge hardcoded EVENTS_DATA with admin-added events */
-  var adminEvs = loadAdminEvents();
-  return EVENTS_DATA.concat(adminEvs);
+function adminSignIn(){
+  var client = sbClient();
+  var email  = (document.getElementById('adminAuthEmail').value||'').trim();
+  var pass   = document.getElementById('adminAuthPass').value||'';
+  var msg    = document.getElementById('adminAuthMsg');
+  if(!client){ if(msg) msg.textContent = 'Supabase not loaded.'; return; }
+  if(!email || !pass){ if(msg) msg.textContent = 'Enter email and password.'; return; }
+  if(msg) msg.textContent = 'Signing in…';
+  client.auth.signInWithPassword({email:email, password:pass}).then(function(res){
+    if(res.error){ if(msg) msg.textContent = res.error.message; return; }
+    if(msg) msg.textContent = '';
+    document.getElementById('adminAuthPass').value = '';
+    updateAdminAuthUI(res.data.session);
+    loadAdminEventsFromSupabase();
+  });
 }
 
-function renderAdminEvList(){
-  var list = document.getElementById('adminEvList');
-  if(!list) return;
-  var events = loadAdminEvents();
-  if(!events.length){
-    list.innerHTML = '<div style="font-size:11px;font-weight:300;color:var(--ink-l);padding:8px 0;">No custom events yet. Add one above.</div>';
+function adminSignOut(){
+  var client = sbClient();
+  if(!client) return;
+  client.auth.signOut().then(function(){
+    updateAdminAuthUI(null);
+  });
+}
+
+function loadAdminEventsFromSupabase(){
+  var client = sbClient();
+  var list = document.getElementById('adminEventList');
+  if(!client){
+    if(list) list.innerHTML = '<div style="font-size:11px;color:#A32D2D;">Supabase not loaded — cannot manage events.</div>';
     return;
   }
-  list.innerHTML = events.map(function(ev, i){
-    return '<div style="padding:12px;border:0.5px solid var(--cream-dd);margin-bottom:8px;background:var(--cream);">'
-      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
-        +'<div>'
-          +'<div style="font-family:var(--serif);font-size:14px;font-weight:300;color:var(--ink);">'+ev.title+'</div>'
-          +'<div style="font-size:10px;font-weight:300;color:var(--ink-l);margin-top:2px;">'+ev.date+' · '+ev.city+'</div>'
-        +'</div>'
-        +'<div style="display:flex;gap:6px;flex-shrink:0;">'
-          +'<button onclick="editAdminEvent('+i+')" style="padding:5px 10px;background:transparent;border:0.5px solid var(--cream-dd);font-family:var(--sans);font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-l);cursor:pointer;">Edit</button>'
-          +'<button onclick="deleteAdminEvent('+i+')" style="padding:5px 10px;background:transparent;border:0.5px solid #F09595;font-family:var(--sans);font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:#A32D2D;cursor:pointer;">Delete</button>'
-        +'</div>'
-      +'</div>'
-    +'</div>';
-  }).join('');
-}
-
-function clearEvForm(){
-  ['evf-title','evf-sub','evf-desc','evf-start','evf-end','evf-time',
-   'evf-city','evf-loc','evf-fee','evf-memfee','evf-eb','evf-cta','evf-editid'].forEach(function(id){
-    var el = document.getElementById(id);
-    if(el) el.value = '';
-  });
-  var t = document.getElementById('evFormTitle');
-  if(t) t.textContent = 'New event';
-  var m = document.getElementById('evFormMsg');
-  if(m) m.textContent = '';
-}
-
-function saveAdminEvent(){
-  var title   = (document.getElementById('evf-title')||{}).value||'';
-  var sub     = (document.getElementById('evf-sub')||{}).value||'';
-  var desc    = (document.getElementById('evf-desc')||{}).value||'';
-  var start   = (document.getElementById('evf-start')||{}).value||'';
-  var end     = (document.getElementById('evf-end')||{}).value||'';
-  var time    = (document.getElementById('evf-time')||{}).value||'';
-  var city    = (document.getElementById('evf-city')||{}).value||'';
-  var loc     = (document.getElementById('evf-loc')||{}).value||'';
-  var fee     = (document.getElementById('evf-fee')||{}).value||'';
-  var memfee  = (document.getElementById('evf-memfee')||{}).value||'';
-  var eb      = (document.getElementById('evf-eb')||{}).value||'';
-  var cta     = (document.getElementById('evf-cta')||{}).value||'Book now';
-  var editId  = (document.getElementById('evf-editid')||{}).value||'';
-
-  if(!title || !start){
-    var m = document.getElementById('evFormMsg');
-    if(m){ m.style.color='#A32D2D'; m.textContent='Title and start date are required.'; }
-    return;
-  }
-
-  /* Format date display */
-  var startD = new Date(start + 'T12:00:00');
-  var endD   = end ? new Date(end + 'T12:00:00') : null;
-  var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  var dateStr = months[startD.getMonth()] + ' ' + startD.getDate() + ', ' + startD.getFullYear();
-  if(endD && end !== start) dateStr = months[startD.getMonth()] + ' ' + startD.getDate() + ' \u2013 ' + months[endD.getMonth()] + ' ' + endD.getDate() + ', ' + endD.getFullYear();
-
-  var ev = {
-    _adminAdded: true,
-    startISO: start,
-    endISO: end || start,
-    hdrClass: 'basil-hdr',
-    title: title,
-    titleEm: true,
-    sub: sub,
-    date: dateStr,
-    time: time || 'See event for details',
-    loc: loc || city,
-    city: city,
-    entryFee: fee || '',
-    desc: desc || sub,
-    prices: [
-      {lbl:'General admission', amt: fee || 'See event', mem: false},
-      {lbl:'Codex Member',      amt: memfee || fee || 'See event', mem: true}
-    ],
-    avs: 80,
-    avsMeta: 'Adrielle Turner event',
-    eb: eb || 'https://www.eventbrite.com/o/adrielle-turner-121058837212',
-    cta: cta
-  };
-
-  var events = loadAdminEvents();
-  if(editId !== ''){
-    events[parseInt(editId)] = ev;
-  } else {
-    events.push(ev);
-  }
-  saveAdminEvents(events);
-  clearEvForm();
-  renderAdminEvList();
-  var m = document.getElementById('evFormMsg');
-  if(m){ m.style.color='var(--basil)'; m.textContent = '\u2713 Event saved.'; setTimeout(function(){m.textContent='';},2000); }
-  /* Refresh events tab */
-  if(typeof renderEvs === 'function') renderEvs();
-}
-
-function editAdminEvent(i){
-  var events = loadAdminEvents();
-  var ev = events[i];
-  if(!ev) return;
-  var fields = {
-    'evf-title': ev.title, 'evf-sub': ev.sub, 'evf-desc': ev.desc,
-    'evf-start': ev.startISO, 'evf-end': ev.endISO,
-    'evf-time': ev.time, 'evf-city': ev.city, 'evf-loc': ev.loc,
-    'evf-fee': ev.prices&&ev.prices[0]?ev.prices[0].amt:'',
-    'evf-memfee': ev.prices&&ev.prices[1]?ev.prices[1].amt:'',
-    'evf-eb': ev.eb, 'evf-cta': ev.cta, 'evf-editid': String(i)
-  };
-  Object.keys(fields).forEach(function(id){
-    var el = document.getElementById(id);
-    if(el) el.value = fields[id] || '';
-  });
-  var t = document.getElementById('evFormTitle');
-  if(t) t.textContent = 'Edit event';
-  document.getElementById('evEditorForm').scrollIntoView({behavior:'smooth'});
-}
-
-function deleteAdminEvent(i){
-  var events = loadAdminEvents();
-  events.splice(i, 1);
-  saveAdminEvents(events);
-  renderAdminEvList();
-  if(typeof renderEvs === 'function') renderEvs();
-}
-
-
-
-/* ── ADMIN EVENT EDITOR ── */
-var ADMIN_EVENTS_KEY = 'cc_admin_events';
-
-function loadAdminEvents(){
-  try{ return JSON.parse(localStorage.getItem(ADMIN_EVENTS_KEY)||'[]'); }
-  catch(e){ return []; }
-}
-
-function saveAdminEvents(events){
-  localStorage.setItem(ADMIN_EVENTS_KEY, JSON.stringify(events));
-  /* Rebuild EVENTS_DATA to include admin events */
-  rebuildEventsData();
-}
-
-function rebuildEventsData(){
-  var adminEvs = loadAdminEvents();
-  /* Merge: start with static base events that aren't overridden */
-  /* Admin events are stored separately and prepended */
-  window._ADMIN_EVENTS = adminEvs;
+  client.from('events').select('*').eq('source','manual')
+    .order('created_at', {ascending:false})
+    .then(function(res){
+      if(res.error){
+        if(list) list.innerHTML = '<div style="font-size:11px;color:#A32D2D;">Could not load events: '+res.error.message+'</div>';
+        return;
+      }
+      _adminEventsCache = res.data || [];
+      renderAdminEventList();
+    });
 }
 
 function renderAdminEventList(){
   var list = document.getElementById('adminEventList');
   if(!list) return;
-  var events = loadAdminEvents();
+  var events = _adminEventsCache;
   if(!events.length){
     list.innerHTML = '<div style="font-size:11px;font-weight:300;color:var(--ink-l);margin-bottom:12px;">No events added yet. Use the form below to add your first event.</div>';
     return;
   }
   list.innerHTML = events.map(function(ev, i){
+    var dateStr = ev.date_label || ev.start_date || '';
     return '<div style="padding:10px 12px;background:var(--cream);border:0.5px solid var(--cream-dd);margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;">'
       +'<div style="flex:1;min-width:0;">'
         +'<div style="font-family:var(--serif);font-size:14px;font-weight:300;color:var(--ink);">'+ev.title+'</div>'
-        +'<div style="font-size:10px;font-weight:300;color:var(--ink-l);">'+ev.date+' · '+ev.city+'</div>'
+        +'<div style="font-size:10px;font-weight:300;color:var(--ink-l);">'+dateStr+' · '+(ev.city||'')+'</div>'
       +'</div>'
       +'<div style="display:flex;gap:6px;flex-shrink:0;margin-left:10px;">'
         +'<button onclick="editAdminEvent('+i+')" style="padding:5px 10px;background:transparent;border:0.5px solid var(--cream-dd);font-family:var(--sans);font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-l);cursor:pointer;">Edit</button>'
@@ -4090,7 +3961,10 @@ function renderAdminEventList(){
 }
 
 function saveAdminEvent(){
-  var id  = document.getElementById('aef-id').value;
+  var client = sbClient();
+  if(!client){ alert('Supabase not loaded — cannot save event.'); return; }
+
+  var id    = (document.getElementById('aef-id').value||'').trim();
   var title = (document.getElementById('aef-title').value||'').trim();
   var sub   = (document.getElementById('aef-sub').value||'').trim();
   var start = (document.getElementById('aef-start').value||'').trim();
@@ -4111,68 +3985,64 @@ function saveAdminEvent(){
     dateLabel = dateLabel + ' – ' + endLabel;
   }
 
-  var ev = {
-    id: id || ('ev_'+Date.now()),
-    startISO: start,
-    endISO: end || start,
-    title: title,
-    titleEm: true,
-    sub: sub,
-    date: dateLabel,
-    time: time || 'See event page',
-    loc: loc || city,
-    city: city,
-    entryFee: fee || 'See event page',
-    desc: desc,
-    eb: eb || 'https://www.eventbrite.com/o/adrielle-turner-121058837212',
-    cta: 'Get tickets',
-    hdrClass: 'basil-hdr',
-    prices: fee ? [{lbl:'General admission',amt:fee,mem:false}] : [],
-    avs: 80,
-    avsMeta: 'Adrielle Turner event',
-    _admin: true
+  var row = {
+    source:'manual',
+    title:title, subtitle:sub || null, description:desc || null,
+    start_date:start || null, end_date:end || start || null,
+    date_label:dateLabel || null,
+    venue_name:loc || null, city:city || 'New York',
+    price_label:fee || null, ticket_url:eb || null,
+    is_published:true, is_featured:true
   };
 
-  var events = loadAdminEvents();
-  if(id){
-    var idx = events.findIndex(function(e){ return e.id===id; });
-    if(idx > -1) events[idx] = ev; else events.push(ev);
-  } else {
-    events.unshift(ev);
-  }
-  saveAdminEvents(events);
-  clearAdminEventForm();
-  renderAdminEventList();
+  var saveBtn = document.querySelector('#adminEventForm button[onclick="saveAdminEvent()"]');
+  if(saveBtn) saveBtn.disabled = true;
 
-  var saved = document.getElementById('adminEventSaved');
-  if(saved){ saved.style.display='block'; setTimeout(function(){ saved.style.display='none'; }, 2500); }
+  var req = id
+    ? client.from('events').update(row).eq('id', id)
+    : client.from('events').insert([Object.assign({source_id:'manual-'+Date.now()}, row)]);
+
+  req.then(function(res){
+    if(saveBtn) saveBtn.disabled = false;
+    if(res.error){ alert('Could not save event: ' + res.error.message); return; }
+    clearAdminEventForm();
+    loadAdminEventsFromSupabase();
+    if(typeof loadEventsFromSupabase === 'function') loadEventsFromSupabase();
+
+    var saved = document.getElementById('adminEventSaved');
+    if(saved){ saved.style.display='block'; setTimeout(function(){ saved.style.display='none'; }, 2500); }
+  });
 }
 
 function editAdminEvent(idx){
-  var events = loadAdminEvents();
-  var ev = events[idx];
+  var ev = _adminEventsCache[idx];
   if(!ev) return;
   document.getElementById('aef-id').value    = ev.id || '';
   document.getElementById('aef-title').value = ev.title || '';
-  document.getElementById('aef-sub').value   = ev.sub || '';
-  document.getElementById('aef-start').value = ev.startISO || '';
-  document.getElementById('aef-end').value   = ev.endISO || '';
-  document.getElementById('aef-time').value  = ev.time || '';
+  document.getElementById('aef-sub').value   = ev.subtitle || '';
+  document.getElementById('aef-start').value = ev.start_date || '';
+  document.getElementById('aef-end').value   = ev.end_date || '';
+  document.getElementById('aef-time').value  = '';
   document.getElementById('aef-city').value  = ev.city || '';
-  document.getElementById('aef-loc').value   = ev.loc || '';
-  document.getElementById('aef-fee').value   = ev.entryFee || '';
-  document.getElementById('aef-eb').value    = ev.eb || '';
-  document.getElementById('aef-desc').value  = ev.desc || '';
+  document.getElementById('aef-loc').value   = ev.venue_name || '';
+  document.getElementById('aef-fee').value   = ev.price_label || '';
+  document.getElementById('aef-eb').value    = ev.ticket_url || '';
+  document.getElementById('aef-desc').value  = ev.description || '';
   document.getElementById('adminEventFormTitle').textContent = 'Edit event';
   document.getElementById('adminEventForm').scrollIntoView({behavior:'smooth'});
 }
 
 function deleteAdminEvent(idx){
   if(!confirm('Delete this event?')) return;
-  var events = loadAdminEvents();
-  events.splice(idx, 1);
-  saveAdminEvents(events);
-  renderAdminEventList();
+  var ev = _adminEventsCache[idx];
+  if(!ev) return;
+  var client = sbClient();
+  if(!client) return;
+  client.from('events').delete().eq('id', ev.id).then(function(res){
+    if(res.error){ alert('Could not delete event: ' + res.error.message); return; }
+    loadAdminEventsFromSupabase();
+    if(typeof loadEventsFromSupabase === 'function') loadEventsFromSupabase();
+  });
 }
 
 function clearAdminEventForm(){
@@ -5042,9 +4912,11 @@ var _origGetEventsDataMerged = (typeof getEventsDataMerged === 'function')
   ? getEventsDataMerged : null;
 
 getEventsDataMerged = function(){
+  /* Manual/admin events are just rows in the same Supabase "events"
+     table (source='manual'), so they're already included here — no
+     separate merge needed. */
   if(window._codexSupabaseEvents && window._codexSupabaseEvents.length){
-    var admin = (typeof loadAdminEvents === 'function') ? loadAdminEvents() : [];
-    return window._codexSupabaseEvents.concat(admin);
+    return window._codexSupabaseEvents;
   }
   return _origGetEventsDataMerged ? _origGetEventsDataMerged() : EVENTS_DATA;
 };
@@ -5072,25 +4944,6 @@ function loadEventsFromSupabase(){
     .catch(function(err){
       console.error('[codex] Supabase load failed:', (err && err.message) || err);
     });
-}
-
-/* Manual add — writes to Supabase instead of localStorage.
-   Requires the signed-in email to match the RLS policy in schema.sql. */
-function adminAddEventSB(ev){
-  var client = sbClient();
-  if(!client) return Promise.reject(new Error('Supabase not loaded'));
-  return client.from('events').insert([{
-    source:'manual', source_id:'manual-' + Date.now(),
-    title:ev.title, subtitle:ev.sub || null, description:ev.desc || null,
-    start_date:ev.startISO || null, end_date:ev.endISO || null,
-    date_label:ev.date || null, venue_name:ev.loc || null,
-    city:ev.city || 'New York', price_label:ev.entryFee || null,
-    ticket_url:ev.eb || null, avs:ev.avs || null, avs_meta:ev.avsMeta || null,
-    is_published:true, is_featured:!!ev.featured
-  }]).then(function(res){
-    if(res.error) throw res.error;
-    return loadEventsFromSupabase();
-  });
 }
 
 if(document.readyState === 'loading'){
