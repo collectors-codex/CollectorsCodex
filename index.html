@@ -11021,16 +11021,20 @@ var SCRAPE_SOURCES = [
   var LEGACY_ROUTE_MAP = {
     directives:'fairs', events:'fairs',
     practicum:'lens',
-    leaderboard:'profile', services:'profile', admin:'profile'
+    leaderboard:'profile', services:'profile'
   };
 
   function normalizeCoreRoute(id){
+    /* Admin stays reachable (for the signed-in admin account, via the
+       Backend/Fairs/Galleries/Artists panel) instead of folding into
+       Profile like the other legacy tabs. */
+    if(id === 'admin') return 'admin';
     if(LEGACY_ROUTE_MAP[id]) return LEGACY_ROUTE_MAP[id];
     if(CORE_SCREENS.indexOf(id) === -1 && id !== 'splash') return 'fairs';
     return id;
   }
 
-  var titleMap = { fairs:'Featured Fairs', lens:'The Lens', profile:'Profile', splash:'Collector’s Cödex' };
+  var titleMap = { fairs:'Featured Fairs', lens:'The Lens', profile:'Profile', admin:'Admin', splash:'Collector’s Cödex' };
 
   window.go = function(id){
     id = normalizeCoreRoute(id);
@@ -11075,7 +11079,12 @@ var SCRAPE_SOURCES = [
     nav.innerHTML =
       '<button class="bnav" onclick="go(\'fairs\')" id="bn-fairs"><svg viewBox="0 0 20 20" fill="none" width="20" height="20"><rect x="3" y="4" width="14" height="12" rx="1" stroke="#2D4A3E" stroke-width="1.2"/><path d="M3 8h14M7.5 8v8M12.5 8v8" stroke="#2D4A3E" stroke-width="1.1"/></svg><span>Fairs</span></button>' +
       '<button class="bnav" onclick="go(\'lens\')" id="bn-lens"><svg viewBox="0 0 20 20" fill="none" width="20" height="20"><path d="M2.5 10s2.8-4.5 7.5-4.5S17.5 10 17.5 10s-2.8 4.5-7.5 4.5S2.5 10 2.5 10z" stroke="#2D4A3E" stroke-width="1.2"/><circle cx="10" cy="10" r="2.3" stroke="#2D4A3E" stroke-width="1.2"/></svg><span>The Lens</span></button>' +
-      '<button class="bnav" onclick="go(\'profile\')" id="bn-profile"><svg viewBox="0 0 20 20" fill="none" width="20" height="20"><circle cx="10" cy="7" r="3" stroke="#2D4A3E" stroke-width="1.2"/><path d="M4.5 17c.5-3.2 2.4-5 5.5-5s5 1.8 5.5 5" stroke="#2D4A3E" stroke-width="1.2" stroke-linecap="round"/></svg><span>Profile</span></button>';
+      '<button class="bnav" onclick="go(\'profile\')" id="bn-profile"><svg viewBox="0 0 20 20" fill="none" width="20" height="20"><circle cx="10" cy="7" r="3" stroke="#2D4A3E" stroke-width="1.2"/><path d="M4.5 17c.5-3.2 2.4-5 5.5-5s5 1.8 5.5 5" stroke="#2D4A3E" stroke-width="1.2" stroke-linecap="round"/></svg><span>Profile</span></button>' +
+      '<button class="bnav" onclick="go(\'admin\')" id="bn-admin" style="display:none;"><svg viewBox="0 0 20 20" fill="none" width="20" height="20"><path d="M10 2.5l6 2.5v4.2c0 4-2.6 6.9-6 8.3-3.4-1.4-6-4.3-6-8.3V5z" stroke="#2D4A3E" stroke-width="1.2"/></svg><span>Admin</span></button>';
+    var _sessEmail = (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('cc_email')) || '';
+    var _isAdmNow = _sessEmail && _sessEmail.toLowerCase().replace(/\s/g,'') === 'artbyadrielle@gmail.com';
+    var _bnAdmin = document.getElementById('bn-admin');
+    if(_bnAdmin) _bnAdmin.style.display = _isAdmNow ? 'flex' : 'none';
   }
 
   /* Small "your Lens is shaping this fair" card, injected under the
