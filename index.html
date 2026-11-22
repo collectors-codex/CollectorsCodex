@@ -11772,6 +11772,636 @@ function adminDeleteArtist(id){
   }
 })();
 </script>
+<script>
+/* ============================================================
+   CODEX v2 — ACCOUNTS THAT FOLLOW YOU + WHAT'S ON
+   1. Supabase is built in, so every visitor is connected
+      (no more pasting a URL/key into Admin on each device).
+   2. Real sign-in (email + password via Supabase Auth). Profile,
+      photo, Lens results and saves live in one cc_profiles row
+      per person and load on any device.
+   3. "What's On": exhibitions, fairs and events from cc_events
+      (filled by the weekly scraper), with city/type filters,
+      ticket links and nearest-first sorting.
+   ============================================================ */
+(function(){
+  'use strict';
+
+  var SB_URL = 'https://gxqtggqijtqrrahqclop.supabase.co';
+  var SB_KEY = 'sb_publishable_ROGGep7HPYlepvKhxxrn8A_uaRUO_97';
+  var IS_RECOVERY = /type=recovery/.test(location.hash || '');
+
+  /* ---------- 1. Always connected ---------- */
+  window.getSBConfig = function(){
+    if(SB_KEY.indexOf('__') !== 0) return { url: SB_URL, key: SB_KEY };
+    var url = '', key = '';
+    try{ url = (localStorage.getItem('cc_sb_url') || '').trim(); key = (localStorage.getItem('cc_sb_anon_key') || '').trim(); }catch(e){}
+    return { url: url || SB_URL, key: key };
+  };
+
+  function $(id){ return document.getElementById(id); }
+  function val(id){ var el = $(id); return el ? String(el.value || '') : ''; }
+  function norm(e){ return String(e || '').trim().toLowerCase(); }
+  function setMsg(el, text, ok){ if(!el) return; el.style.color = ok ? '#2D4A3E' : '#A32D2D'; el.textContent = text; }
+
+  /* ---------- 2. Cloud profile bundle ---------- */
+  var authUser = null;
+  var syncTimer = null;
+
+  function readLens(email){
+    try{ var s = localStorage.getItem('cc_lens_' + norm(email)); return s ? JSON.parse(s) : null; }catch(e){ return null; }
+  }
+  function readSavesLS(email){
+    try{ var s = localStorage.getItem('cc_saves_' + norm(email)); return s ? JSON.parse(s) : {}; }catch(e){ return {}; }
+  }
+  function buildBundle(email){
+    var profile = (typeof _readProfileLS === 'function' ? _readProfileLS(email) : null) || window._codexProfile || null;
+    var saves = window._codexSaves && Object.keys(window._codexSaves).length ? window._codexSaves : readSavesLS(email);
+    return { v: 2, profile: profile, lens: readLens(email), saves: saves || {} };
+  }
+
+  function pushBundle(){
+    clearTimeout(syncTimer); syncTimer = null;
+    if(!authUser) return Promise.resolve();
+    var user = authUser, email = norm(user.email);
+    var row = { user_id: user.id, email: email, data: buildBundle(email), updated_at: new Date().toISOString() };
+    return getSB().then(function(sb){
+      if(!sb) return;
+      return sb.from('cc_profiles').upsert(row, { onConflict: 'user_id' }).then(function(r){
+        if(r && r.error) console.error('[codex] profile save failed:', r.error.message);
+      });
+    }).catch(function(e){ console.error('[codex] profile save failed:', e); });
+  }
+  function scheduleSync(){
+    if(!authUser) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(pushBundle, 700);
+  }
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'hidden' && syncTimer) pushBundle();
+  });
+
+  function fetchBundle(user){
+    return getSB().then(function(sb){
+      if(!sb) return null;
+      return sb.from('cc_profiles').select('data').eq('user_id', user.id).maybeSingle().then(function(r){
+        if(r && r.error){ console.error('[codex] profile load failed:', r.error.message); return null; }
+        return r && r.data ? r.data.data : null;
+      });
+    }).catch(function(e){ console.error('[codex] profile load failed:', e); return null; });
+  }
+
+  function applyBundle(email, b){
+    if(!b) return;
+    email = norm(email);
+    if(b.profile){
+      b.profile.email = email;
+      if(typeof _writeProfileLS === 'function') _writeProfileLS(email, b.profile);
+      window._codexProfile = b.profile;
+    }
+    if(b.lens){
+      try{ localStorage.setItem('cc_lens_' + email, JSON.stringify(b.lens)); }catch(e){}
+    }
+    var merged = readSavesLS(email);
+    Object.keys(b.saves || {}).forEach(function(k){ if(b.saves[k]) merged[k] = true; });
+    try{ localStorage.setItem('cc_saves_' + email, JSON.stringify(merged)); }catch(e){}
+    window._codexSaves = merged;
+  }
+
+  /* Route the app's existing save/load hooks through the bundle */
+  window.sbSyncProfile = function(){ scheduleSync(); return Promise.resolve(); };
+  window.sbSyncSaves   = function(){ scheduleSync(); return Promise.resolve(); };
+  window.sbFetchProfile = function(){
+    if(!authUser) return Promise.resolve(null);
+    return fetchBundle(authUser).then(function(b){ return b && b.profile ? b.profile : null; });
+  };
+  window.sbFetchSaves = function(){
+    if(!authUser) return Promise.resolve(null);
+    return fetchBundle(authUser).then(function(b){ return b && b.saves ? b.saves : null; });
+  };
+  ['commitLensResponses', 'publishLensFingerprint'].forEach(function(name){
+    var orig = window[name];
+    if(typeof orig !== 'function') return;
+    window[name] = function(){ var r = orig.apply(this, arguments); scheduleSync(); return r; };
+  });
+
+  /* ---------- 3. Sign in / sign up ---------- */
+  function friendlyAuthError(e){
+    var m = String((e && e.message) || e || '');
+    if(/invalid login credentials/i.test(m)) return 'That email and password don’t match. Try again, or reset your password.';
+    if(/email not confirmed/i.test(m)) return 'Confirm your email first: open the link we sent to your inbox, then sign in.';
+    if(/already registered|already exists/i.test(m)) return 'An account with this email already exists. Sign in instead.';
+    if(/password/i.test(m) && /(least|short|weak)/i.test(m)) return 'Use a longer password: at least 8 characters.';
+    if(/rate limit|too many/i.test(m)) return 'Too many attempts. Wait a minute, then try again.';
+    if(/fetch|network|offline/i.test(m)) return 'Can’t reach Collector’s Cödex right now. Check your connection and try again.';
+    return m || 'Something went wrong. Try again.';
+  }
+
+  function afterAuth(user, signupInfo){
+    authUser = user;
+    var email = norm(user.email);
+    sessionStorage.setItem('cc_email', email);
+    return fetchBundle(user).then(function(b){
+      var isNewCloudProfile = !b || !b.profile;
+      if(!isNewCloudProfile){
+        applyBundle(email, b);
+      } else {
+        /* First sign-in on the new system: keep anything already on this
+           device (older local-only profile), add signup details, then upload. */
+        var pending = signupInfo;
+        if(!pending){ try{ pending = JSON.parse(localStorage.getItem('cc_pending_signup_' + email) || 'null'); }catch(e){} }
+        var base = (typeof _readProfileLS === 'function' ? _readProfileLS(email) : null) || {};
+        if(pending){ Object.keys(pending).forEach(function(k){ if(pending[k] && !base[k]) base[k] = pending[k]; }); }
+        var meta = user.user_metadata || {};
+        if(!base.name) base.name = meta.name || email.split('@')[0];
+        if(!base.joined) base.joined = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        base.email = email;
+        if(typeof _writeProfileLS === 'function') _writeProfileLS(email, base);
+        window._codexProfile = base;
+        if(b && b.lens){ try{ localStorage.setItem('cc_lens_' + email, JSON.stringify(b.lens)); }catch(e){} }
+      }
+      try{ localStorage.removeItem('cc_pending_signup_' + email); }catch(e){}
+      var p = window._codexProfile || {};
+      var name = p.name || email.split('@')[0];
+      sessionStorage.setItem('cc_nda', '1');
+      sessionStorage.setItem('cc_name', name);
+      sessionStorage.setItem('cc_email', email);
+      window._codexSaves = readSavesLS(email);
+      if(typeof renderFairFeed === 'function') renderFairFeed();
+      var done = isNewCloudProfile ? pushBundle() : Promise.resolve();
+      return done.then(function(){ return name; });
+    }).then(function(name){
+      if(typeof applySession === 'function') applySession(name, email);
+      if(typeof updateStreak === 'function') updateStreak();
+      if(IS_RECOVERY){ IS_RECOVERY = false; showRecovery(); }
+    });
+  }
+
+  window.doLogin = function(){
+    var email = norm(val('loginEmail'));
+    var pass = val('loginPass');
+    var msg = $('loginMsg');
+    if(!email || email.indexOf('@') < 0){ setMsg(msg, 'Enter your email address.'); return; }
+    if(!pass){ setMsg(msg, 'Enter your password.'); return; }
+    setMsg(msg, 'Signing in…', true);
+    getSB().then(function(sb){
+      if(!sb) throw new Error('network');
+      return sb.auth.signInWithPassword({ email: email, password: pass });
+    }).then(function(res){
+      if(res.error) throw res.error;
+      setMsg(msg, '', true);
+      return afterAuth(res.data.user, null);
+    }).catch(function(e){ setMsg(msg, friendlyAuthError(e)); });
+  };
+
+  window.doSignup = function(){
+    var first = val('ndaFirst').trim(), last = val('ndaLast').trim();
+    var email = norm(val('ndaEmail'));
+    var pass = val('ndaPass');
+    var msg = $('signupMsg');
+    var roleEl = document.querySelector('#roleSelect .role-pill.on');
+    var role = roleEl ? roleEl.getAttribute('data-role') : 'Member';
+    var city = val('ndaCity').trim() || 'New York';
+    if(!first){ setMsg(msg, 'Enter your first name.'); return; }
+    if(!email || email.indexOf('@') < 0){ setMsg(msg, 'Enter a valid email address.'); return; }
+    if(pass.length < 8){ setMsg(msg, 'Choose a password with at least 8 characters.'); return; }
+    var name = first + (last ? ' ' + last : '');
+    var info = { name: name, role: role, city: city, joined: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) };
+    setMsg(msg, 'Creating your profile…', true);
+    getSB().then(function(sb){
+      if(!sb) throw new Error('network');
+      return sb.auth.signUp({ email: email, password: pass, options: { data: { name: name } } });
+    }).then(function(res){
+      if(res.error) throw res.error;
+      var user = res.data && res.data.user;
+      if(user && Array.isArray(user.identities) && user.identities.length === 0){
+        throw new Error('already registered');
+      }
+      if(res.data.session){ setMsg(msg, '', true); return afterAuth(user, info); }
+      try{ localStorage.setItem('cc_pending_signup_' + email, JSON.stringify(info)); }catch(e){}
+      setMsg(msg, 'Almost there. We sent a confirmation link to ' + email + '. Open it, then come back and sign in.', true);
+    }).catch(function(e){ setMsg(msg, friendlyAuthError(e)); });
+  };
+
+  window.codexForgotPassword = function(){
+    var email = norm(val('loginEmail'));
+    var msg = $('loginMsg');
+    if(!email || email.indexOf('@') < 0){ setMsg(msg, 'Enter your email above, then tap “Forgot password?” again.'); return; }
+    setMsg(msg, 'Sending reset link…', true);
+    getSB().then(function(sb){
+      if(!sb) throw new Error('network');
+      return sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+    }).then(function(res){
+      if(res && res.error) throw res.error;
+      setMsg(msg, 'Check your inbox for a link to reset your password.', true);
+    }).catch(function(e){ setMsg(msg, friendlyAuthError(e)); });
+  };
+
+  function showRecovery(){
+    if($('codexRecovery')) return;
+    var box = document.createElement('div');
+    box.id = 'codexRecovery';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-label', 'Set a new password');
+    box.innerHTML =
+      '<div class="cx-rec-card">' +
+        '<div class="cx-rec-title">Set a new password</div>' +
+        '<input id="cxRecPass" type="password" autocomplete="new-password" placeholder="New password (8+ characters)" class="cx-auth-input"/>' +
+        '<div id="cxRecMsg" class="cx-auth-msg"></div>' +
+        '<button type="button" class="cx-rec-save" id="cxRecSave">Save password</button>' +
+      '</div>';
+    document.body.appendChild(box);
+    $('cxRecSave').onclick = function(){
+      var pass = val('cxRecPass'), msg = $('cxRecMsg');
+      if(pass.length < 8){ setMsg(msg, 'Use at least 8 characters.'); return; }
+      setMsg(msg, 'Saving…', true);
+      getSB().then(function(sb){ return sb.auth.updateUser({ password: pass }); }).then(function(res){
+        if(res.error) throw res.error;
+        setMsg(msg, 'Password saved.', true);
+        try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){}
+        setTimeout(function(){ box.remove(); }, 900);
+      }).catch(function(e){ setMsg(msg, friendlyAuthError(e)); });
+    };
+  }
+
+  var origSignOut = window.signOut;
+  window.signOut = function(){
+    var finish = function(){
+      authUser = null;
+      if(typeof origSignOut === 'function') origSignOut();
+    };
+    pushBundle().then(function(){ return getSB(); }).then(function(sb){
+      return sb ? sb.auth.signOut() : null;
+    }).catch(function(){}).then(finish);
+  };
+
+  function injectAuthFields(){
+    var loginEmail = $('loginEmail');
+    if(loginEmail && !$('loginPass')){
+      var lp = document.createElement('input');
+      lp.id = 'loginPass'; lp.type = 'password'; lp.placeholder = 'Password';
+      lp.autocomplete = 'current-password';
+      lp.style.cssText = loginEmail.style.cssText;
+      loginEmail.autocomplete = 'email';
+      loginEmail.style.marginBottom = '14px';
+      loginEmail.insertAdjacentElement('afterend', lp);
+      lp.addEventListener('keydown', function(e){ if(e.key === 'Enter') window.doLogin(); });
+      var signInBtn = document.querySelector('#authLogin button[onclick="doLogin()"]');
+      if(signInBtn){
+        var forgot = document.createElement('button');
+        forgot.type = 'button';
+        forgot.className = 'cx-forgot';
+        forgot.textContent = 'Forgot password?';
+        forgot.onclick = window.codexForgotPassword;
+        signInBtn.insertAdjacentElement('afterend', forgot);
+      }
+    }
+    var ndaEmail = $('ndaEmail');
+    if(ndaEmail && !$('ndaPass')){
+      var sp = document.createElement('input');
+      sp.id = 'ndaPass'; sp.type = 'password'; sp.placeholder = 'Create a password (8+ characters)';
+      sp.autocomplete = 'new-password';
+      sp.style.cssText = ndaEmail.style.cssText;
+      ndaEmail.autocomplete = 'email';
+      ndaEmail.style.marginBottom = '16px';
+      ndaEmail.insertAdjacentElement('afterend', sp);
+      var createBtn = document.querySelector('#authSignup button[onclick="doSignup()"]');
+      if(createBtn && !$('signupMsg')){
+        var sm = document.createElement('div');
+        sm.id = 'signupMsg';
+        sm.className = 'cx-auth-msg';
+        sm.setAttribute('role', 'status');
+        createBtn.insertAdjacentElement('beforebegin', sm);
+      }
+    }
+    var lm = $('loginMsg'); if(lm) lm.setAttribute('role', 'status');
+  }
+
+  /* ---------- 4. What's On ---------- */
+  var CITIES = ['All cities', 'New York', 'Miami', 'Los Angeles', 'Paris', 'Chicago', 'Mexico City'];
+  var TYPES = [['all', 'Everything'], ['exhibition', 'Exhibitions'], ['event', 'Events'], ['fair', 'Fairs']];
+  var TYPE_LABEL = { exhibition: 'Exhibition', event: 'Event', fair: 'Fair' };
+  var USE_MILES = /^en-(US|LR|MM)/i.test(navigator.language || 'en-US');
+  var WO = { events: null, loadedAt: 0, loading: false, error: '', city: 'All cities', type: 'all', near: false, pos: null, limitNow: 40, limitSoon: 20 };
+
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function safeUrl(u){ return /^https?:\/\//i.test(String(u || '')) ? String(u) : ''; }
+  function todayISO(){
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function daysUntil(iso){
+    if(!iso) return null;
+    var t = new Date(iso + 'T12:00:00'), n = new Date(todayISO() + 'T12:00:00');
+    return Math.round((t - n) / 86400000);
+  }
+  function fmtDate(iso){
+    if(!iso) return '';
+    var d = new Date(iso + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: d.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined });
+  }
+  function dateLine(e){
+    if(e.date_text) return e.date_text;
+    if(e.start_date && e.end_date && e.start_date !== e.end_date) return fmtDate(e.start_date) + ' – ' + fmtDate(e.end_date);
+    if(e.start_date) return fmtDate(e.start_date);
+    if(e.end_date) return 'Through ' + fmtDate(e.end_date);
+    return '';
+  }
+  function distanceKm(a, b){
+    var R = 6371, toR = Math.PI / 180;
+    var dLat = (b.lat - a.lat) * toR, dLon = (b.lon - a.lon) * toR;
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(a.lat * toR) * Math.cos(b.lat * toR) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+  function distanceLabel(km){
+    if(km == null) return '';
+    var v = USE_MILES ? km * 0.621371 : km;
+    var unit = USE_MILES ? 'mi' : 'km';
+    return (v < 10 ? v.toFixed(1) : Math.round(v)) + ' ' + unit + ' away';
+  }
+
+  function loadEvents(force){
+    if(WO.loading) return;
+    if(!force && WO.events && Date.now() - WO.loadedAt < 10 * 60 * 1000) return;
+    WO.loading = true; WO.error = '';
+    renderWhatsOn();
+    getSB().then(function(sb){
+      if(!sb) throw new Error('network');
+      return sb.from('cc_events')
+        .select('id,event_url,source_name,type,title,artists,venue,address,city,start_date,end_date,date_text,dates_approximate,ticket_url,image_url,description,latitude,longitude')
+        .eq('active', true)
+        .limit(3000);
+    }).then(function(r){
+      if(r.error) throw r.error;
+      WO.events = r.data || [];
+      WO.loadedAt = Date.now();
+    }).catch(function(e){
+      console.error('[codex] events load failed:', e);
+      WO.error = 'Couldn’t load events. Check your connection, then try again.';
+      if(!WO.events) WO.events = [];
+    }).then(function(){ WO.loading = false; renderWhatsOn(); });
+  }
+
+  function filtered(){
+    var today = todayISO();
+    var list = (WO.events || []).filter(function(e){
+      if(e.end_date && e.end_date < today) return false;
+      if(WO.city !== 'All cities' && e.city !== WO.city) return false;
+      if(WO.type !== 'all' && e.type !== WO.type) return false;
+      return true;
+    });
+    list.forEach(function(e){
+      e._km = (WO.near && WO.pos && e.latitude != null && e.longitude != null)
+        ? distanceKm(WO.pos, { lat: e.latitude, lon: e.longitude }) : null;
+    });
+    var now = [], soon = [];
+    list.forEach(function(e){ (e.start_date && e.start_date > today ? soon : now).push(e); });
+    function byDistance(a, b){
+      if(a._km == null && b._km == null) return 0;
+      if(a._km == null) return 1;
+      if(b._km == null) return -1;
+      return a._km - b._km;
+    }
+    if(WO.near && WO.pos){
+      now.sort(byDistance); soon.sort(byDistance);
+    } else {
+      now.sort(function(a, b){ return (a.end_date || '9999') < (b.end_date || '9999') ? -1 : (a.end_date || '9999') > (b.end_date || '9999') ? 1 : 0; });
+      soon.sort(function(a, b){ return a.start_date < b.start_date ? -1 : a.start_date > b.start_date ? 1 : 0; });
+    }
+    return { now: now, soon: soon };
+  }
+
+  function itemHTML(e){
+    var url = safeUrl(e.event_url), ticket = safeUrl(e.ticket_url), img = safeUrl(e.image_url);
+    var meta = (TYPE_LABEL[e.type] || 'Exhibition') + (e.city ? ' in ' + e.city : '');
+    var dist = distanceLabel(e._km);
+    var left = daysUntil(e.end_date);
+    var closing = (left != null && left >= 0 && left <= 7 && (!e.start_date || e.start_date <= todayISO()))
+      ? '<span class="cx-wo-closing">' + (left === 0 ? 'Last day' : left === 1 ? 'Closes tomorrow' : 'Closes in ' + left + ' days') + '</span>' : '';
+    var saved = typeof isSaved === 'function' && isSaved('event', String(e.id));
+    var venue = e.venue && e.venue !== e.title ? e.venue : '';
+    return '<article class="cx-wo-item">' +
+      (img ? '<div class="cx-wo-thumb"><img src="' + esc(img) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"/></div>' : '') +
+      '<div class="cx-wo-body">' +
+        '<div class="cx-wo-meta">' + esc(meta) + (dist ? '<span class="cx-wo-dist">' + esc(dist) + '</span>' : '') + '</div>' +
+        '<h3 class="cx-wo-title">' + esc(e.title) + '</h3>' +
+        (venue ? '<div class="cx-wo-venue">' + esc(venue) + '</div>' : '') +
+        '<div class="cx-wo-dates">' + esc(dateLine(e)) + (e.dates_approximate ? ' <span class="cx-wo-approx">(approx.)</span>' : '') + closing + '</div>' +
+        '<div class="cx-wo-actions">' +
+          (ticket ? '<a class="cx-wo-btn primary" href="' + esc(ticket) + '" target="_blank" rel="noopener">Get tickets</a>' : '') +
+          (url ? '<a class="cx-wo-btn" href="' + esc(url) + '" target="_blank" rel="noopener">' + (ticket ? 'Details' : 'View details') + '</a>' : '') +
+          '<button type="button" class="cx-wo-btn' + (saved ? ' sv' : '') + '" onclick="toggleSave(this,\'event\',\'' + esc(String(e.id)) + '\')">' + (saved ? 'Saved' : 'Save') + '</button>' +
+        '</div>' +
+      '</div>' +
+    '</article>';
+  }
+
+  function sectionHTML(title, list, limitKey, emptyText){
+    if(!list.length) return emptyText ? '<div class="cx-wo-section"><h2 class="cx-wo-h">' + title + '</h2><p class="cx-wo-empty">' + emptyText + '</p></div>' : '';
+    var limit = WO[limitKey];
+    var more = list.length > limit
+      ? '<button type="button" class="cx-wo-more" onclick="codexWhatsOnMore(\'' + limitKey + '\')">Show ' + Math.min(40, list.length - limit) + ' more</button>' : '';
+    return '<div class="cx-wo-section"><h2 class="cx-wo-h">' + title + ' <span class="cx-wo-count">' + list.length + '</span></h2>' +
+      list.slice(0, limit).map(itemHTML).join('') + more + '</div>';
+  }
+
+  function renderWhatsOn(){
+    var screen = $('sc-whatson');
+    if(!screen) return;
+    var cityPills = CITIES.map(function(c){
+      return '<button type="button" class="ftag' + (WO.city === c ? ' on' : '') + '" onclick="codexWhatsOnCity(\'' + c + '\')">' + c + '</button>';
+    }).join('');
+    var typePills = TYPES.map(function(t){
+      return '<button type="button" class="ftag' + (WO.type === t[0] ? ' on' : '') + '" onclick="codexWhatsOnType(\'' + t[0] + '\')">' + t[1] + '</button>';
+    }).join('') + '<button type="button" class="ftag' + (WO.near ? ' on' : '') + '" onclick="codexWhatsOnNear()">' + (WO.near ? 'Nearest first' : 'Near me') + '</button>';
+
+    var body;
+    if(WO.loading && !WO.events){
+      body = '<p class="cx-wo-empty">Loading what’s on…</p>';
+    } else if(WO.error && !(WO.events || []).length){
+      body = '<p class="cx-wo-empty">' + esc(WO.error) + ' <button type="button" class="cx-wo-link" onclick="codexWhatsOnReload()">Try again</button></p>';
+    } else if(!(WO.events || []).length){
+      body = '<p class="cx-wo-empty">No events yet. They appear here after the Monday update runs.</p>';
+    } else {
+      var f = filtered();
+      if(!f.now.length && !f.soon.length){
+        body = '<p class="cx-wo-empty">Nothing matches' + (WO.city !== 'All cities' ? ' in ' + esc(WO.city) : '') + ' right now. Try another city or type.</p>';
+      } else {
+        body = sectionHTML('On now', f.now, 'limitNow', '') + sectionHTML('Coming soon', f.soon, 'limitSoon', '');
+      }
+    }
+    var nearNote = WO.nearNote ? '<p class="cx-wo-note">' + esc(WO.nearNote) + '</p>' : '';
+
+    screen.innerHTML =
+      '<div class="page-head">' +
+        '<div class="pg-title">What’s on</div>' +
+        '<div class="pg-sub">Exhibitions, fairs and events in New York, Miami, Los Angeles, Paris, Chicago and Mexico City. Updated every Monday.</div>' +
+      '</div>' +
+      '<div class="fstrip" aria-label="City">' + cityPills + '</div>' +
+      '<div class="fstrip cx-wo-types" aria-label="Type">' + typePills + '</div>' +
+      nearNote +
+      '<div class="cx-wo-list">' + body + '</div>';
+  }
+
+  window.codexWhatsOnCity = function(c){ WO.city = c; WO.limitNow = 40; WO.limitSoon = 20; renderWhatsOn(); };
+  window.codexWhatsOnType = function(t){ WO.type = t; WO.limitNow = 40; WO.limitSoon = 20; renderWhatsOn(); };
+  window.codexWhatsOnMore = function(key){ WO[key] += 40; renderWhatsOn(); };
+  window.codexWhatsOnReload = function(){ loadEvents(true); };
+  window.codexWhatsOnNear = function(){
+    if(WO.near){ WO.near = false; WO.nearNote = ''; renderWhatsOn(); return; }
+    if(!navigator.geolocation){ WO.nearNote = 'Your browser can’t share your location.'; renderWhatsOn(); return; }
+    WO.nearNote = 'Finding your location…'; renderWhatsOn();
+    navigator.geolocation.getCurrentPosition(function(pos){
+      WO.pos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+      WO.near = true; WO.nearNote = '';
+      renderWhatsOn();
+    }, function(){
+      WO.near = false;
+      WO.nearNote = 'Location is off. Allow location for this site in your browser settings to sort by distance.';
+      renderWhatsOn();
+    }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+  };
+
+  function showWhatsOn(){
+    var target = $('sc-whatson');
+    if(!target) return;
+    document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('on'); });
+    target.classList.add('on');
+    target.scrollTop = 0;
+    document.querySelectorAll('.bnav').forEach(function(b){ b.classList.remove('on'); });
+    var nb = $('bn-whatson'); if(nb) nb.classList.add('on');
+    var title = $('navTitle'); if(title) title.textContent = 'What’s On';
+    var back = $('navBack'); if(back){ back.style.opacity = '1'; back.style.pointerEvents = 'auto'; }
+    var bottomNav = document.querySelector('.bottom-nav'); if(bottomNav) bottomNav.style.display = '';
+    renderWhatsOn();
+    loadEvents(false);
+  }
+
+  function installWhatsOn(){
+    var fairs = $('sc-fairs');
+    if(fairs && !$('sc-whatson')){
+      var screen = document.createElement('div');
+      screen.className = 'screen';
+      screen.id = 'sc-whatson';
+      fairs.insertAdjacentElement('afterend', screen);
+    }
+    var fairsBtn = $('bn-fairs');
+    if(fairsBtn && !$('bn-whatson')){
+      var btn = document.createElement('button');
+      btn.className = 'bnav'; btn.id = 'bn-whatson';
+      btn.setAttribute('onclick', "go('whatson')");
+      btn.innerHTML = '<svg viewBox="0 0 20 20" fill="none" width="20" height="20"><rect x="3" y="4.5" width="14" height="12" rx="1" stroke="#2D4A3E" stroke-width="1.2"/><path d="M3 8.5h14M7 3v3M13 3v3" stroke="#2D4A3E" stroke-width="1.2" stroke-linecap="round"/><circle cx="10" cy="12.5" r="1.4" fill="#2D4A3E"/></svg><span>What’s On</span>';
+      fairsBtn.insertAdjacentElement('afterend', btn);
+    }
+    var prevGo = window.go;
+    if(typeof prevGo === 'function' && !prevGo._codexV2){
+      var wrapped = function(id){
+        if(id === 'whatson' || id === 'events'){ showWhatsOn(); return; }
+        return prevGo.apply(this, arguments);
+      };
+      wrapped._codexV2 = true;
+      window.go = wrapped;
+    }
+  }
+
+  function injectStyles(){
+    if($('codexV2Styles')) return;
+    var css =
+      '.cx-auth-msg{font-size:11px;line-height:1.6;min-height:18px;margin:0 0 14px;width:100%;max-width:320px;color:#A32D2D;}' +
+      '.cx-forgot{background:none;border:none;padding:4px 0 14px;font-family:var(--sans);font-size:11px;font-weight:400;color:var(--ink-l);text-decoration:underline;text-underline-offset:3px;cursor:pointer;}' +
+      '.cx-forgot:focus-visible,.cx-wo-btn:focus-visible,.cx-wo-more:focus-visible,.cx-wo-link:focus-visible,.ftag:focus-visible{outline:2px solid var(--basil);outline-offset:2px;}' +
+      '#codexRecovery{position:fixed;inset:0;z-index:10000;background:rgba(26,25,22,.55);display:flex;align-items:center;justify-content:center;padding:24px;}' +
+      '.cx-rec-card{background:var(--cream);width:100%;max-width:340px;padding:28px 24px;}' +
+      '.cx-rec-title{font-family:var(--serif);font-size:24px;font-weight:300;color:var(--ink);margin-bottom:16px;}' +
+      '.cx-auth-input{width:100%;border:none;border-bottom:1.5px solid var(--cream-dd);background:transparent;font-family:var(--sans);font-size:16px;font-weight:300;color:var(--ink);padding:10px 0;outline:none;margin-bottom:10px;}' +
+      '.cx-rec-save{width:100%;padding:14px;background:var(--basil);color:var(--cream);border:none;font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;}' +
+      '.cx-wo-types{padding-top:4px;}' +
+      'button.ftag{font-family:var(--sans);}' +
+      '.cx-wo-note{margin:6px 20px 0;font-size:11px;line-height:1.6;color:var(--ink-m);}' +
+      '.cx-wo-list{padding:6px 20px 24px;}' +
+      '.cx-wo-section{margin-top:18px;}' +
+      '.cx-wo-h{font-family:var(--serif);font-size:22px;font-weight:400;color:var(--ink);margin:0 0 4px;display:flex;align-items:baseline;gap:8px;}' +
+      '.cx-wo-count{font-family:var(--sans);font-size:11px;font-weight:400;color:var(--ink-l);}' +
+      '.cx-wo-item{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--cream-d);}' +
+      '.cx-wo-thumb{flex:0 0 76px;height:96px;overflow:hidden;background:var(--cream-d);}' +
+      '.cx-wo-thumb img{width:100%;height:100%;object-fit:cover;display:block;}' +
+      '.cx-wo-body{flex:1;min-width:0;}' +
+      '.cx-wo-meta{font-size:11px;font-weight:400;color:var(--gold);margin-bottom:3px;display:flex;flex-wrap:wrap;gap:8px;}' +
+      '.cx-wo-dist{color:var(--basil);}' +
+      '.cx-wo-title{font-family:var(--serif);font-size:19px;font-weight:400;line-height:1.2;color:var(--ink);margin:0 0 3px;overflow-wrap:anywhere;}' +
+      '.cx-wo-venue{font-size:12px;font-weight:400;color:var(--ink-m);margin-bottom:2px;}' +
+      '.cx-wo-dates{font-size:12px;font-weight:300;color:var(--ink-l);line-height:1.5;}' +
+      '.cx-wo-approx{font-style:italic;}' +
+      '.cx-wo-closing{display:inline-block;margin-left:8px;color:#8A3B2B;font-weight:400;}' +
+      '.cx-wo-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}' +
+      '.cx-wo-btn{font-family:var(--sans);font-size:11px;font-weight:500;padding:7px 12px;border:0.5px solid var(--cream-dd);background:transparent;color:var(--ink-m);text-decoration:none;cursor:pointer;line-height:1.2;}' +
+      '.cx-wo-btn.primary{background:var(--basil);border-color:var(--basil);color:var(--cream);}' +
+      '.cx-wo-btn.sv{border-color:var(--basil);color:var(--basil);}' +
+      '.cx-wo-more{margin-top:14px;width:100%;padding:12px;background:transparent;border:0.5px solid var(--cream-dd);font-family:var(--sans);font-size:11px;font-weight:500;color:var(--ink-m);cursor:pointer;}' +
+      '.cx-wo-empty{font-size:13px;font-weight:300;line-height:1.7;color:var(--ink-m);margin:18px 0;}' +
+      '.cx-wo-link{background:none;border:none;padding:0;font:inherit;color:var(--basil);text-decoration:underline;cursor:pointer;}';
+    var style = document.createElement('style');
+    style.id = 'codexV2Styles';
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+
+  /* ---------- 5. Boot ---------- */
+  function boot(){
+    injectStyles();
+    injectAuthFields();
+    installWhatsOn();
+    getSB().then(function(sb){
+      if(!sb) return;
+      sb.auth.onAuthStateChange(function(event){
+        if(event === 'PASSWORD_RECOVERY' && authUser) showRecovery();
+        if(event === 'SIGNED_OUT') authUser = null;
+      });
+      return sb.auth.getSession().then(function(r){
+        var session = r && r.data && r.data.session;
+        if(session && session.user){
+          var email = norm(session.user.email);
+          var already = sessionStorage.getItem('cc_nda') === '1' && norm(sessionStorage.getItem('cc_email')) === email;
+          if(already){
+            authUser = session.user;
+            var ovl = $('ndaOverlay'); if(ovl) ovl.style.display = 'none';
+            var adminBtn = $('bn-admin'); if(adminBtn) adminBtn.style.display = email === 'artbyadrielle@gmail.com' ? 'flex' : 'none';
+            fetchBundle(session.user).then(function(b){
+              if(b && b.profile){
+                applyBundle(email, b);
+                if(typeof renderFairFeed === 'function') renderFairFeed();
+                if(typeof refreshNavR === 'function') refreshNavR();
+              } else {
+                pushBundle();
+              }
+              if(IS_RECOVERY){ IS_RECOVERY = false; showRecovery(); }
+            });
+          } else {
+            var lm = $('loginMsg'); if(lm) setMsg(lm, 'Signing you in…', true);
+            afterAuth(session.user, null).then(function(){ if(lm) lm.textContent = ''; });
+          }
+        } else if(sessionStorage.getItem('cc_nda') === '1'){
+          /* An old browser-only guest session: ask for a real sign-in so
+             the profile can be saved to the account. */
+          ['cc_nda', 'cc_name', 'cc_email'].forEach(function(k){ sessionStorage.removeItem(k); });
+          var ov = $('ndaOverlay'); if(ov) ov.style.display = 'block';
+          if(typeof showLogin === 'function') showLogin();
+          var msg = $('loginMsg');
+          if(msg) setMsg(msg, 'Sign in or create a profile to keep your Lens and saves on every device.', true);
+        }
+      });
+    }).catch(function(e){ console.error('[codex] startup failed:', e); });
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+</script>
+
 
 </body>
 </html>
