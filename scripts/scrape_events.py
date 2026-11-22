@@ -334,9 +334,14 @@ def main():
                 rows = []
                 for ev in data.get("events") or []:
                     raw_city = clean(ev.get("city"))
-                    city = canonical_city(raw_city) if raw_city else venue["city"]
+                    if raw_city:
+                        city = canonical_city(raw_city)
+                    elif ev.get("type") == "fair":
+                        city = None  # a fair a gallery is taking part in: only keep it if its city is known
+                    else:
+                        city = venue["city"]
                     if not city:
-                        continue  # e.g. a Hauser & Wirth show in London
+                        continue  # e.g. a Hauser & Wirth show in London, or an out-of-town fair
                     row = make_row(ev, page_url, name, venue, city)
                     if row:
                         add_coordinates(row, venue, have_coords)
