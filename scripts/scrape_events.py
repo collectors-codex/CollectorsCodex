@@ -24,9 +24,9 @@ from urllib.parse import urljoin
 
 import requests
 
-FIRECRAWL_KEY = os.environ["FIRECRAWL_API_KEY"]
-SB_URL = os.environ["SUPABASE_URL"].rstrip("/")
-SB_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+FIRECRAWL_KEY = os.environ["FIRECRAWL_API_KEY"].strip()
+SB_URL = os.environ["SUPABASE_URL"].strip().rstrip("/")
+SB_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"].strip()
 SOURCE_LIMIT = int(os.environ.get("SOURCE_LIMIT") or 0)
 
 TODAY = dt.date.today()
